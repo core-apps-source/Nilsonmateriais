@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#d35400">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Nilson PDV">
+    <title>PDV Nilson Materiais - Pro Max</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=Barlow+Condensed:wght@700;900&display=swap');
+        :root {
+            --primary: #1a252f;
+            --secondary: #d35400;
+            --success: #27ae60;
+            --info: #2980b9;
+            --light: #f0f2f4;
+            --warn: #e67e22;
+            --danger: #c0392b;
+            --purple: #8e44ad;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: 'Barlow', sans-serif; margin: 0; background: var(--light); overflow: hidden; }
+        .container { display: grid; grid-template-columns: 1fr 430px; height: 100vh; padding: 10px; gap: 10px; }
+        .main-panel { background: white; padding: 20px; border-radius: 10px; overflow-y: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .side-panel { background: var(--primary); color: white; padding: 20px; border-radius: 10px; display: flex; flex-direction: column; }
+
+        /* CAIXA FECHADO */
+        #caixa-overlay {
+            position: fixed; inset: 0; background: rgba(26,37,47,0.97);
+            display: flex; align-items: center; justify-content: center; z-index: 9999;
+        }
+        .caixa-box {
+            background: white; border-radius: 12px; padding: 40px; max-width: 420px; width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5); text-align: center;
+        }
+        .caixa-box h2 { font-family: 'Barlow Condensed', sans-serif; font-size: 2em; color: var(--primary); margin: 0 0 5px; }
+        .caixa-box p { color: #777; margin-bottom: 25px; }
+        .caixa-box label { display: block; text-align: left; font-size: 13px; font-weight: 700; color: #333; margin-bottom: 5px; }
+        .caixa-box input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; font-family: 'Barlow', sans-serif; margin-bottom: 15px; transition: border 0.2s; }
+        .caixa-box input:focus { border-color: var(--secondary); outline: none; }
+        .btn-abrir { width: 100%; padding: 15px; background: var(--success); color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: 700; cursor: pointer; font-family: 'Barlow', sans-serif; letter-spacing: 1px; }
+        .btn-abrir:hover { background: #219a52; }
+        .logo-open { font-size: 48px; margin-bottom: 10px; }
+
+        /* TABS */
+        .tabs { display: flex; gap: 6px; margin-bottom: 18px; }
+        .tab-btn { padding: 10px 18px; cursor: pointer; border: 2px solid #ddd; background: #f5f5f5; border-radius: 6px; font-weight: 700; font-family: 'Barlow', sans-serif; font-size: 14px; transition: all 0.15s; }
+        .tab-btn.active { background: var(--secondary); color: white; border-color: var(--secondary); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* FORMS */
+        label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+        input[type=text], input[type=number] { width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 15px; font-family: 'Barlow', sans-serif; transition: border 0.2s; }
+        input:focus { border-color: var(--secondary); outline: none; }
+
+        /* TABELAS */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        table th { background: #f8f9fa; padding: 10px; text-align: left; font-size: 12px; text-transform: uppercase; color: #888; border-bottom: 2px solid #eee; }
+        table td { padding: 9px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+        table tr:hover td { background: #fafafa; }
+
+        /* SIDE PANEL */
+        .total-display { font-size: 3.2em; text-align: center; margin: 12px 0; border: 3px solid var(--secondary); padding: 8px; border-radius: 8px; background: rgba(211,84,0,0.12); font-family: 'Barlow Condensed', sans-serif; font-weight: 900; }
+        .btn-pay { padding: 14px 10px; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; color: white; font-size: 15px; font-family: 'Barlow', sans-serif; transition: opacity 0.15s; }
+        .btn-pay:hover { opacity: 0.85; }
+        .btn-pay:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ESTOQUE FORM */
+        .estoque-form { background: #f8f9fa; padding: 18px; border-radius: 10px; border: 2px solid #e8e8e8; }
+        .estoque-form h3 { margin: 0 0 15px; font-family: 'Barlow Condensed', sans-serif; font-size: 1.3em; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+        .form-grid .span2 { grid-column: span 2; }
+        .form-grid .span3 { grid-column: span 3; }
+        .lucro-preview { background: #e8f8ee; border: 2px solid #27ae60; border-radius: 6px; padding: 10px; text-align: center; font-size: 18px; font-weight: 700; color: var(--success); }
+        .lucro-preview small { display: block; font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; }
+
+        /* BOTÕES AÇÃO TABELA */
+        .btn-icon { width: 32px; height: 32px; border: none; border-radius: 5px; cursor: pointer; font-size: 15px; display: inline-flex; align-items: center; justify-content: center; transition: opacity 0.15s; }
+        .btn-icon:hover { opacity: 0.75; }
+        .btn-edit { background: #e3f0ff; color: #2980b9; }
+        .btn-del { background: #ffeaea; color: var(--danger); }
+        .btn-save { background: #e8f8ee; color: var(--success); }
+        .btn-cancel { background: #f5f5f5; color: #888; }
+
+        /* BACKUP BAR */
+        .backup-bar { background: #eef0f2; padding: 12px 15px; border-radius: 8px; margin-top: 15px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .backup-bar strong { font-size: 13px; color: #555; }
+        .btn-backup { border: none; padding: 8px 14px; border-radius: 5px; cursor: pointer; font-weight: 700; font-family: 'Barlow', sans-serif; font-size: 13px; }
+
+        /* STATUS BADGES */
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .badge-low { background: #ffeaea; color: var(--danger); }
+        .badge-ok { background: #e8f8ee; color: var(--success); }
+
+        /* CAIXA STATUS */
+        .caixa-status { background: rgba(255,255,255,0.08); border-radius: 6px; padding: 8px 12px; font-size: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .caixa-status .btn-fechar { background: var(--danger); border: none; color: white; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 700; font-family: 'Barlow', sans-serif; }
+
+        /* MODAL EDIÇÃO */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .modal-box { background: white; border-radius: 12px; padding: 30px; max-width: 500px; width: 90%; box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+        .modal-box h3 { font-family: 'Barlow Condensed', sans-serif; font-size: 1.5em; margin: 0 0 20px; color: var(--primary); }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+
+        /* RELATÓRIOS */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .stat-card { padding: 15px; border-radius: 8px; text-align: center; color: white; }
+        .stat-card span { font-size: 12px; opacity: 0.85; display: block; }
+        .stat-card strong { font-size: 20px; font-family: 'Barlow Condensed', sans-serif; }
+
+        .qty-edit { width: 65px !important; padding: 5px 8px !important; text-align: center; font-size: 14px !important; }
+
+        @media print {
+            @page { margin: 0; size: 80mm auto; }
+            body * { visibility: hidden; }
+            #receipt-print, #receipt-print * { visibility: visible; }
+            #receipt-print { display: block !important; position: absolute; left: 0; top: 0; width: 76mm; padding: 2mm; font-family: Arial, sans-serif; }
+            .r-header { font-size: 26px; font-weight: bold; text-align: center; display: block; }
+            .r-info { font-size: 16px; text-align: center; display: block; }
+            .r-fiscal { font-size: 18px; font-weight: bold; text-align: center; border: 2px solid #000; margin: 10px 0; padding: 5px; display: block; }
+            .r-item { font-size: 20px; font-weight: bold; margin-top: 10px; }
+            .r-details { font-size: 18px; display: flex; justify-content: space-between; border-bottom: 1px dashed #000; }
+            .r-total { font-size: 30px; font-weight: bold; display: flex; justify-content: space-between; border-top: 2px solid #000; margin-top: 10px; }
+        }
+        #receipt-print { display: none; }
+
+        /* NOVO PRODUTO BTN */
+        .btn-novo { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: var(--secondary); color: white; border: none; border-radius: 7px; font-weight: 700; font-size: 15px; cursor: pointer; font-family: 'Barlow', sans-serif; margin-bottom: 18px; transition: background 0.15s; }
+        .btn-novo:hover { background: #b94600; }
+
+        .section-divider { font-family: 'Barlow Condensed', sans-serif; font-size: 1.1em; color: #999; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #f0f0f0; padding-bottom: 6px; margin: 15px 0 10px; }
+
+        /* LOGIN */
+        #login-overlay {
+            position: fixed; inset: 0;
+            background: linear-gradient(135deg, #1a252f 0%, #2c3e50 100%);
+            display: flex; align-items: center; justify-content: center; z-index: 99999;
+        }
+        .login-box {
+            background: white; border-radius: 16px; padding: 40px 38px; max-width: 400px; width: 90%;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.6); text-align: center;
+        }
+        .login-box .logo { font-size: 52px; margin-bottom: 8px; }
+        .login-box h2 { font-family: 'Barlow Condensed', sans-serif; font-size: 1.9em; color: var(--primary); margin: 0 0 4px; }
+        .login-box .sub { color: #aaa; font-size: 13px; margin-bottom: 22px; }
+        .login-box label { display: block; text-align: left; font-size: 12px; font-weight: 700; color: #555; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .login-box input { width: 100%; padding: 12px 14px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; font-family: 'Barlow', sans-serif; margin-bottom: 13px; transition: border 0.2s; }
+        .login-box input:focus { border-color: var(--secondary); outline: none; }
+        .btn-login { width: 100%; padding: 14px; background: var(--secondary); color: white; border: none; border-radius: 8px; font-size: 17px; font-weight: 700; cursor: pointer; font-family: 'Barlow', sans-serif; letter-spacing: 1px; transition: background 0.2s; margin-top: 2px; }
+        .btn-login:hover { background: #b94600; }
+        .btn-login.verde { background: var(--success); }
+        .btn-login.verde:hover { background: #219a52; }
+        .login-error { color: var(--danger); font-size: 13px; font-weight: 700; margin: -8px 0 10px; display: none; }
+        .login-success { color: var(--success); font-size: 13px; font-weight: 700; margin: -8px 0 10px; display: none; }
+        .login-links { display: flex; justify-content: space-between; margin-top: 14px; }
+        .login-links a { font-size: 13px; color: var(--info); cursor: pointer; text-decoration: none; font-weight: 600; }
+        .login-links a:hover { text-decoration: underline; }
+        .login-screen { display: none; }
+        .login-screen.ativo { display: block; }
+        .btn-voltar { background: none; border: none; color: #aaa; font-size: 13px; cursor: pointer; font-family: 'Barlow', sans-serif; margin-top: 10px; text-decoration: underline; }
+
+        /* INSTALAR APP */
+        #btn-install {
+            position: fixed; bottom: 20px; right: 20px; background: var(--info); color: white;
+            border: none; border-radius: 50px; padding: 12px 22px; font-weight: 700; font-size: 14px;
+            cursor: pointer; display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.35); z-index: 8000;
+            font-family: 'Barlow', sans-serif; transition: background 0.15s;
+        }
+        #btn-install:hover { background: #1a6fa0; }
+
+        /* MODAL INSTALAR */
+        #modal-install {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            display: none; align-items: center; justify-content: center; z-index: 9000;
+        }
+        #modal-install.open { display: flex; }
+        .install-box {
+            background: white; border-radius: 16px; padding: 32px 30px; max-width: 460px; width: 92%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4); text-align: center;
+        }
+        .install-box h3 { font-family: 'Barlow Condensed', sans-serif; font-size: 1.7em; color: var(--primary); margin: 0 0 6px; }
+        .install-box .isub { color: #888; font-size: 13px; margin-bottom: 24px; }
+        .install-platforms { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+        .install-card { background: #f8f9fa; border: 2px solid #e8e8e8; border-radius: 12px; padding: 18px 14px; }
+        .install-card .icon { font-size: 32px; margin-bottom: 8px; }
+        .install-card h4 { font-family: 'Barlow Condensed', sans-serif; font-size: 1.1em; color: var(--primary); margin: 0 0 10px; }
+        .install-card ol { text-align: left; font-size: 13px; color: #555; padding-left: 18px; margin: 0; line-height: 1.9; }
+        .install-card ol b { color: var(--primary); }
+        .btn-fechar-install { background: #eee; border: none; border-radius: 8px; padding: 10px 28px; font-weight: 700; font-family: 'Barlow', sans-serif; cursor: pointer; font-size: 14px; color: #555; }
+        .btn-fechar-install:hover { background: #ddd; }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-overlay">
+    <div class="login-box">
+        <div class="logo">🏪</div>
+        <h2>NILSON MATERIAIS</h2>
+
+        <!-- TELA: ENTRAR -->
+        <div id="tela-login" class="login-screen ativo">
+            <p class="sub">PDV Pro Max — Faça login para continuar</p>
+            <label>Usuário</label>
+            <input type="text" id="login-user" placeholder="Digite seu usuário" autocomplete="username" onkeypress="if(event.key==='Enter') document.getElementById('login-pass').focus()">
+            <label>Senha</label>
+            <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" onkeypress="if(event.key==='Enter') fazerLogin()">
+            <div class="login-error" id="login-error">❌ Usuário ou senha incorretos</div>
+            <button class="btn-login" onclick="fazerLogin()">🔐 ENTRAR</button>
+            <div class="login-links">
+                <a onclick="mostrarTela('tela-criar')">Não tem conta? Criar conta</a>
+                <a onclick="mostrarTela('tela-recuperar')">Esqueceu a senha?</a>
+            </div>
+        </div>
+
+        <!-- TELA: CRIAR CONTA -->
+        <div id="tela-criar" class="login-screen">
+            <p class="sub">Crie seu acesso ao sistema</p>
+            <label>Usuário</label>
+            <input type="text" id="criar-user" placeholder="Escolha um usuário">
+            <label>Senha</label>
+            <input type="password" id="criar-pass" placeholder="Crie uma senha">
+            <label>Confirmar Senha</label>
+            <input type="password" id="criar-pass2" placeholder="Repita a senha" onkeypress="if(event.key==='Enter') criarConta()">
+            <div class="login-error" id="criar-error"></div>
+            <div class="login-success" id="criar-ok">✅ Conta criada! Faça login.</div>
+            <button class="btn-login verde" onclick="criarConta()">✅ CRIAR CONTA</button>
+            <br><button class="btn-voltar" onclick="mostrarTela('tela-login')">← Voltar ao login</button>
+        </div>
+
+        <!-- TELA: RECUPERAR SENHA -->
+        <div id="tela-recuperar" class="login-screen">
+            <p class="sub">Redefinir senha</p>
+            <label>Usuário</label>
+            <input type="text" id="rec-user" placeholder="Digite seu usuário">
+            <label>Nova Senha</label>
+            <input type="password" id="rec-pass" placeholder="Nova senha">
+            <label>Confirmar Nova Senha</label>
+            <input type="password" id="rec-pass2" placeholder="Repita a nova senha" onkeypress="if(event.key==='Enter') recuperarSenha()">
+            <div class="login-error" id="rec-error"></div>
+            <div class="login-success" id="rec-ok">✅ Senha alterada! Faça login.</div>
+            <button class="btn-login" onclick="recuperarSenha()">🔑 REDEFINIR SENHA</button>
+            <br><button class="btn-voltar" onclick="mostrarTela('tela-login')">← Voltar ao login</button>
+        </div>
+    </div>
+</div>
+
+<!-- BOTÃO INSTALAR APP -->
+<button id="btn-install" onclick="instalarApp()">📲 Instalar App</button>
+
+<!-- MODAL INSTALAR -->
+<div id="modal-install">
+    <div class="install-box">
+        <div style="font-size:40px; margin-bottom:8px">📲</div>
+        <h3>Instalar o App</h3>
+        <p class="isub">Adicione o PDV à tela inicial do seu dispositivo para acesso rápido</p>
+        <div class="install-platforms">
+            <div class="install-card">
+                <div class="icon">💻</div>
+                <h4>PC — Chrome / Edge</h4>
+                <ol>
+                    <li>Abra o arquivo no <b>Chrome</b> ou <b>Edge</b></li>
+                    <li>Clique no ícone <b>⊕</b> ou <b>⬇</b> na barra de endereços</li>
+                    <li>Clique em <b>"Instalar"</b></li>
+                </ol>
+            </div>
+            <div class="install-card">
+                <div class="icon">📱</div>
+                <h4>Celular — Android / iOS</h4>
+                <ol>
+                    <li>Abra no <b>Chrome</b> (Android) ou <b>Safari</b> (iPhone)</li>
+                    <li>Toque nos <b>3 pontos</b> ou no ícone de <b>compartilhar</b></li>
+                    <li>Selecione <b>"Adicionar à tela inicial"</b></li>
+                </ol>
+            </div>
+        </div>
+        <button class="btn-fechar-install" onclick="document.getElementById('modal-install').classList.remove('open')">Fechar</button>
+    </div>
+</div>
+
+<!-- OVERLAY ABRIR CAIXA -->
+<div id="caixa-overlay">
+    <div class="caixa-box">
+        <div class="logo-open">🏪</div>
+        <h2>NILSON MATERIAIS</h2>
+        <p>Preencha os dados para abrir o caixa</p>
+        <label>Nome do Vendedor <small style="color:#aaa;font-weight:400">(opcional)</small></label>
+        <input type="text" id="open-seller" placeholder="Ex: João, Maria...">
+        <label>Valor de Abertura do Caixa (R$) <small style="color:#aaa;font-weight:400">(opcional)</small></label>
+        <input type="number" id="open-value" placeholder="0,00" step="0.01" min="0">
+        <button class="btn-abrir" onclick="abrirCaixa()">✅ ABRIR CAIXA</button>
+    </div>
+</div>
+
+<!-- MODAL EDITAR PRODUTO -->
+<div id="modal-edit" class="modal-overlay" style="display:none">
+    <div class="modal-box">
+        <h3>✏️ Editar Produto</h3>
+        <div class="form-grid">
+            <div><label>Nº Registro</label><input type="number" id="e-id"></div>
+            <div><label>Cód. Busca</label><input type="text" id="e-code"></div>
+            <div><label>Preço Custo</label><input type="number" id="e-cost" step="0.01" oninput="calcLucroModal()"></div>
+            <div class="span3"><label>Nome do Produto</label><input type="text" id="e-name"></div>
+            <div><label>Preço Venda</label><input type="number" id="e-sale" step="0.01" oninput="calcLucroModal()"></div>
+            <div><label>Estoque</label><input type="number" id="e-stock"></div>
+            <div><div class="lucro-preview" style="height:100%; display:flex; flex-direction:column; justify-content:center;" id="e-lucro-preview"><small>Lucro</small><span id="e-lucro-val">--</span></div></div>
+        </div>
+        <input type="hidden" id="e-idx">
+        <div class="modal-actions">
+            <button class="btn-pay" style="background:var(--success); flex:1" onclick="saveEditProduct()">💾 SALVAR</button>
+            <button class="btn-pay" style="background:#95a5a6; flex:1" onclick="closeModal()">CANCELAR</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL FECHAR CAIXA -->
+<div id="modal-fechar" class="modal-overlay" style="display:none">
+    <div class="modal-box" style="max-width:380px; text-align:center">
+        <h3>🔒 Fechar Caixa</h3>
+        <div id="fechar-resumo" style="background:#f8f9fa; border-radius:8px; padding:15px; margin-bottom:20px; text-align:left; font-size:14px; line-height:2"></div>
+        <div class="modal-actions">
+            <button class="btn-pay" style="background:var(--danger); flex:1" onclick="confirmarFecharCaixa()">🔒 CONFIRMAR FECHAMENTO</button>
+            <button class="btn-pay" style="background:#95a5a6; flex:1" onclick="document.getElementById('modal-fechar').style.display='none'">CANCELAR</button>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="main-panel">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('venda', this)">🛒 Venda</button>
+            <button class="tab-btn" onclick="showTab('estoque', this)">📦 Estoque</button>
+            <button class="tab-btn" onclick="showTab('relatorios', this)">📊 Relatórios</button>
+        </div>
+
+        <!-- ABA VENDA -->
+        <div id="venda" class="tab-content active">
+            <label>Busca Rápida (Nome, Código de Busca ou Nº Registro)</label>
+            <input type="text" id="search-input" placeholder="Digite o produto ou bipe o código..." onkeypress="handleSearch(event)" style="font-size:17px; padding:12px; margin-bottom:12px">
+            <table id="cart-table">
+                <thead><tr><th>Produto</th><th>Qtd</th><th>Unitário</th><th>Subtotal</th><th></th></tr></thead>
+                <tbody id="cart-body"></tbody>
+            </table>
+            <div style="text-align:right; margin-top:10px; color:#999; font-size:13px" id="cart-count"></div>
+        </div>
+
+        <!-- ABA ESTOQUE -->
+        <div id="estoque" class="tab-content">
+
+            <button class="btn-novo" onclick="toggleForm(true)">➕ CADASTRAR NOVO PRODUTO</button>
+
+            <!-- FORMULÁRIO CADASTRO -->
+            <div id="estoque-form-wrap" style="display:none; margin-bottom:20px">
+                <div class="estoque-form">
+                    <h3>📋 Novo Produto</h3>
+                    <div class="form-grid">
+                        <div>
+                            <label>Nº Registro</label>
+                            <input type="number" id="p-id" placeholder="Auto">
+                        </div>
+                        <div>
+                            <label>Cód. Busca <small style="font-weight:400;text-transform:none">(opcional)</small></label>
+                            <input type="text" id="p-custom-code" placeholder="Ex: 180, ABC...">
+                        </div>
+                        <div>
+                            <label>Estoque Inicial</label>
+                            <input type="number" id="p-stock" placeholder="0" min="0">
+                        </div>
+                        <div class="span3">
+                            <label>Nome do Produto</label>
+                            <input type="text" id="p-name" placeholder="Nome completo do produto">
+                        </div>
+                        <div>
+                            <label>Preço de Custo (R$)</label>
+                            <input type="number" id="p-cost" step="0.01" placeholder="0,00" oninput="calcLucro()">
+                        </div>
+                        <div>
+                            <label>Preço de Venda (R$)</label>
+                            <input type="number" id="p-sale" step="0.01" placeholder="0,00" oninput="calcLucro()">
+                        </div>
+                        <div>
+                            <div class="lucro-preview" id="lucro-preview">
+                                <small>Lucro sobre Custo</small>
+                                <span id="lucro-val">--</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-top:15px">
+                        <button class="btn-pay" style="background:var(--success); flex:2" onclick="saveProduct()">✅ CADASTRAR PRODUTO</button>
+                        <button class="btn-pay" style="background:#95a5a6; flex:1" onclick="toggleForm(false)">CANCELAR</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BACKUP -->
+            <div class="backup-bar">
+                <strong>💾 Backup:</strong>
+                <button class="btn-backup" style="background:#34495e; color:white" onclick="exportBackup('produtos')">📦 Salvar Produtos</button>
+                <button class="btn-backup" style="background:#2980b9; color:white" onclick="exportBackup('financas')">💰 Salvar Finanças</button>
+                <button class="btn-backup" style="background:#27ae60; color:white" onclick="exportBackup('tudo')">🗂️ Salvar Tudo</button>
+                <label style="margin:0; background:#95a5a6; color:white; padding:8px 14px; border-radius:5px; cursor:pointer; font-weight:700; font-size:13px;">
+                    ♻️ Restaurar <input type="file" id="importFile" hidden onchange="importBackup(event)">
+                </label>
+            </div>
+
+            <!-- BUSCA ESTOQUE -->
+            <div class="section-divider" style="margin-top:20px">📋 Produtos Cadastrados</div>
+            <input type="text" id="search-inv" placeholder="Buscar produto no estoque..." oninput="renderInventory()" style="margin-bottom:10px">
+
+            <table id="inventory-table">
+                <thead>
+                    <tr>
+                        <th>Reg.</th>
+                        <th>Busca</th>
+                        <th>Nome</th>
+                        <th>Estoque</th>
+                        <th>Custo</th>
+                        <th>Venda</th>
+                        <th>Lucro%</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="inventory-body"></tbody>
+            </table>
+        </div>
+
+        <!-- ABA RELATÓRIOS -->
+        <div id="relatorios" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card" style="background:var(--success)"><span>Hoje</span><strong id="stat-hoje">R$ 0,00</strong></div>
+                <div class="stat-card" style="background:var(--info)"><span>Este Mês</span><strong id="stat-mes">R$ 0,00</strong></div>
+                <div class="stat-card" style="background:var(--secondary)"><span>Abertura Caixa</span><strong id="stat-abertura">R$ 0,00</strong></div>
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:15px">
+                <select id="filter-seller" onchange="renderReports()" style="flex:1; padding:8px; border:2px solid #eee; border-radius:6px; font-family:'Barlow',sans-serif">
+                    <option value="">Todos os Vendedores</option>
+                </select>
+                <select id="filter-method" onchange="renderReports()" style="flex:1; padding:8px; border:2px solid #eee; border-radius:6px; font-family:'Barlow',sans-serif">
+                    <option value="">Todas as Formas</option>
+                    <option>Crédito</option><option>Débito</option><option>PIX</option><option>Dinheiro</option>
+                </select>
+            </div>
+            <table>
+                <thead><tr><th>Hora</th><th>Vendedor</th><th>Total</th><th>Pagamento</th></tr></thead>
+                <tbody id="history-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PAINEL DIREITO -->
+    <div class="side-panel">
+        <div style="text-align: center; margin-bottom:10px">
+            <div class="caixa-status">
+                <div>
+                    <span id="vendedor-log" style="font-size:13px; opacity:0.85">Vendedor: --</span><br>
+                    <small style="opacity:0.6; font-size:11px" id="caixa-hora">--</small>
+                </div>
+                <button class="btn-fechar" onclick="pedirFecharCaixa()">🔒 Fechar Caixa</button>
+            </div>
+            <strong style="font-size: 22px; font-family:'Barlow Condensed',sans-serif; letter-spacing:1px">NILSON MATERIAIS</strong><br>
+            <small style="opacity:0.6">CNPJ: 43.407.588/0001-05</small>
+        </div>
+
+        <div id="side-items" style="flex-grow:1; overflow-y:auto; font-size:13px; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px"></div>
+
+        <div class="total-display">
+            <small style="font-size:14px; display:block; opacity:0.7">TOTAL GERAL</small>
+            R$ <span id="grand-total">0,00</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px">
+            <button class="btn-pay" style="background:var(--info)" onclick="finish('Crédito')">💳 CRÉDITO</button>
+            <button class="btn-pay" style="background:var(--purple)" onclick="finish('Débito')">💳 DÉBITO</button>
+            <button class="btn-pay" style="background:#16a085" onclick="finish('PIX')">📱 PIX</button>
+            <button class="btn-pay" style="background:#c0a010; color:white" onclick="finish('Dinheiro')">💵 DINHEIRO</button>
+        </div>
+        <button class="btn-pay" style="background:var(--danger); width:100%" onclick="cancelarVenda()">🗑️ CANCELAR VENDA</button>
+    </div>
+</div>
+
+<!-- CUPOM -->
+<div id="receipt-print">
+    <span class="r-header">NILSON MATERIAIS</span>
+    <span class="r-info">CNPJ: 43.407.588/0001-05</span>
+    <span class="r-info">Tel: (11) 95895-6678</span>
+    <span class="r-info">Rua Japu, 772 - Cotia - SP</span>
+    <span class="r-fiscal">SEM VALOR FISCAL</span>
+    <div id="r-list"></div>
+    <div class="r-total"><span>TOTAL:</span><span id="r-total">0,00</span></div>
+    <div id="r-details-pay" style="font-size:18px; margin-top:10px"></div>
+    <div class="r-info" style="margin-top:20px; font-weight:bold">OBRIGADO PELA PREFERÊNCIA!</div>
+</div>
+
+<script>
+let inventory = JSON.parse(localStorage.getItem('nilson_pro_inv')) || [];
+let sales = JSON.parse(localStorage.getItem('nilson_pro_sales')) || [];
+let cart = [];
+let currentSeller = "";
+let caixaAberto = false;
+let caixaAbertura = { valor: 0, hora: null };
+
+// ===== CAIXA =====
+function abrirCaixa() {
+    const seller = document.getElementById('open-seller').value.trim();
+    const valor = parseFloat(document.getElementById('open-value').value) || 0;
+    currentSeller = seller ? seller.toUpperCase() : "GERAL";
+    caixaAberto = true;
+    caixaAbertura = { valor, hora: new Date() };
+
+    document.getElementById('vendedor-log').innerText = "Vendedor: " + currentSeller;
+    document.getElementById('caixa-hora').innerText = "Aberto às " + caixaAbertura.hora.toLocaleTimeString();
+    document.getElementById('caixa-overlay').style.display = 'none';
+    renderInventory();
+    updateNextId();
+}
+
+function pedirFecharCaixa() {
+    const hoje = new Date().toLocaleDateString();
+    const vHoje = sales.filter(s => new Date(s.date).toLocaleDateString() === hoje);
+    const totalHoje = vHoje.reduce((a,b) => a + b.total, 0);
+    const qtdVendas = vHoje.length;
+    const saldoFinal = caixaAbertura.valor + totalHoje;
+
+    document.getElementById('fechar-resumo').innerHTML = `
+        <b>Resumo do Caixa</b><br>
+        🕐 Abertura: ${caixaAbertura.hora ? caixaAbertura.hora.toLocaleTimeString() : '--'}<br>
+        💵 Valor de Abertura: R$ ${caixaAbertura.valor.toFixed(2)}<br>
+        🛒 Vendas Realizadas: ${qtdVendas}<br>
+        💰 Total Vendido: R$ ${totalHoje.toFixed(2)}<br>
+        <hr style="border:none; border-top:1px solid #ddd; margin:8px 0">
+        <b style="font-size:16px">💼 Saldo Final: R$ ${saldoFinal.toFixed(2)}</b>
+    `;
+    document.getElementById('modal-fechar').style.display = 'flex';
+}
+
+function confirmarFecharCaixa() {
+    document.getElementById('modal-fechar').style.display = 'none';
+    document.getElementById('open-seller').value = '';
+    document.getElementById('open-value').value = '';
+    caixaAberto = false;
+    cart = [];
+    renderCart();
+    document.getElementById('caixa-overlay').style.display = 'flex';
+}
+
+// ===== TABS =====
+function showTab(id, btn) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if(btn) btn.classList.add('active');
+    if(id === 'relatorios') renderReports();
+    if(id === 'estoque') renderInventory();
+}
+
+// ===== PRÓXIMO ID =====
+function getNextId() {
+    if(!inventory.length) return 1;
+    return Math.max(...inventory.map(p => p.id)) + 1;
+}
+
+function updateNextId() {
+    const el = document.getElementById('p-id');
+    if(el && !el.value) el.value = getNextId();
+}
+
+// ===== FORM TOGGLE =====
+function toggleForm(show) {
+    document.getElementById('estoque-form-wrap').style.display = show ? 'block' : 'none';
+    if(show) {
+        document.getElementById('p-id').value = getNextId();
+        document.getElementById('p-name').focus();
+    }
+}
+
+// ===== CÁLCULO LUCRO =====
+function calcLucro() {
+    const cost = parseFloat(document.getElementById('p-cost').value) || 0;
+    const sale = parseFloat(document.getElementById('p-sale').value) || 0;
+    const el = document.getElementById('lucro-val');
+    if(cost > 0 && sale > 0) {
+        const pct = ((sale - cost) / cost * 100).toFixed(1);
+        const val = (sale - cost).toFixed(2);
+        el.innerText = `${pct}% (R$ ${val})`;
+        document.getElementById('lucro-preview').style.background = pct >= 0 ? '#e8f8ee' : '#ffeaea';
+        document.getElementById('lucro-preview').style.borderColor = pct >= 0 ? '#27ae60' : '#c0392b';
+        document.getElementById('lucro-preview').style.color = pct >= 0 ? '#27ae60' : '#c0392b';
+    } else { el.innerText = '--'; }
+}
+
+function calcLucroModal() {
+    const cost = parseFloat(document.getElementById('e-cost').value) || 0;
+    const sale = parseFloat(document.getElementById('e-sale').value) || 0;
+    const el = document.getElementById('e-lucro-val');
+    if(cost > 0 && sale > 0) {
+        const pct = ((sale - cost) / cost * 100).toFixed(1);
+        el.innerText = `${pct}%`;
+    } else { el.innerText = '--'; }
+}
+
+// ===== CADASTRAR PRODUTO =====
+function saveProduct() {
+    const name = document.getElementById('p-name').value.trim();
+    const sale = parseFloat(document.getElementById('p-sale').value) || 0;
+    if(!name || sale <= 0) return alert("Preencha pelo menos Nome e Preço de Venda!");
+
+    const idInput = parseInt(document.getElementById('p-id').value) || getNextId();
+    if(inventory.find(p => p.id === idInput)) {
+        if(!confirm(`Já existe um produto com Nº ${idInput}. Deseja usar o próximo disponível (${getNextId()})?`)) return;
+    }
+
+    inventory.push({
+        id: idInput,
+        customCode: document.getElementById('p-custom-code').value.trim(),
+        name: name.toUpperCase(),
+        cost: parseFloat(document.getElementById('p-cost').value) || 0,
+        sale: sale,
+        stock: parseInt(document.getElementById('p-stock').value) || 0
+    });
+    localStorage.setItem('nilson_pro_inv', JSON.stringify(inventory));
+    renderInventory();
+    // Limpar
+    ['p-id','p-name','p-custom-code','p-cost','p-sale','p-stock'].forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('lucro-val').innerText = '--';
+    document.getElementById('p-id').value = getNextId();
+    toggleForm(false);
+}
+
+// ===== RENDER ESTOQUE =====
+function renderInventory() {
+    const query = (document.getElementById('search-inv') ? document.getElementById('search-inv').value : '').toLowerCase();
+    const filtered = query
+        ? inventory.filter(p => p.name.toLowerCase().includes(query) || (p.customCode || '').toLowerCase().includes(query) || p.id.toString().includes(query))
+        : inventory;
+
+    const tbody = document.getElementById('inventory-body');
+    tbody.innerHTML = filtered.map((p, i) => {
+        const realIdx = inventory.indexOf(p);
+        const lucro = p.cost > 0 ? ((p.sale - p.cost) / p.cost * 100).toFixed(0) : '--';
+        const badge = p.stock <= 0 ? '<span class="badge badge-low">⚠ Zerado</span>' : (p.stock <= 5 ? '<span class="badge badge-low">Baixo</span>' : '<span class="badge badge-ok">OK</span>');
+        return `<tr>
+            <td><b>#${p.id}</b></td>
+            <td>${p.customCode || '<span style="color:#ccc">--</span>'}</td>
+            <td>${p.name}</td>
+            <td>${p.stock} ${badge}</td>
+            <td>${p.cost > 0 ? 'R$ ' + p.cost.toFixed(2) : '<span style="color:#ccc">--</span>'}</td>
+            <td>R$ ${p.sale.toFixed(2)}</td>
+            <td>${lucro !== '--' ? lucro + '%' : '--'}</td>
+            <td style="white-space:nowrap">
+                <button class="btn-icon btn-edit" onclick="openEdit(${realIdx})" title="Editar">✏️</button>
+                <button class="btn-icon btn-del" onclick="deleteProduct(${realIdx})" title="Excluir">🗑️</button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+// ===== EDITAR PRODUTO =====
+function openEdit(idx) {
+    const p = inventory[idx];
+    document.getElementById('e-idx').value = idx;
+    document.getElementById('e-id').value = p.id;
+    document.getElementById('e-code').value = p.customCode || '';
+    document.getElementById('e-name').value = p.name;
+    document.getElementById('e-cost').value = p.cost || '';
+    document.getElementById('e-sale').value = p.sale;
+    document.getElementById('e-stock').value = p.stock;
+    calcLucroModal();
+    document.getElementById('modal-edit').style.display = 'flex';
+}
+
+function saveEditProduct() {
+    const idx = parseInt(document.getElementById('e-idx').value);
+    const newId = parseInt(document.getElementById('e-id').value) || inventory[idx].id;
+    const name = document.getElementById('e-name').value.trim();
+    const sale = parseFloat(document.getElementById('e-sale').value) || 0;
+    if(!name || sale <= 0) return alert("Preencha Nome e Preço de Venda!");
+
+    const conflict = inventory.find((p, i) => p.id === newId && i !== idx);
+    if(conflict) return alert(`O Nº ${newId} já está em uso pelo produto "${conflict.name}". Escolha outro número.`);
+
+    inventory[idx] = {
+        ...inventory[idx],
+        id: newId,
+        customCode: document.getElementById('e-code').value.trim(),
+        name: name.toUpperCase(),
+        cost: parseFloat(document.getElementById('e-cost').value) || 0,
+        sale: sale,
+        stock: parseInt(document.getElementById('e-stock').value) || 0
+    };
+    localStorage.setItem('nilson_pro_inv', JSON.stringify(inventory));
+    closeModal();
+    renderInventory();
+}
+
+function deleteProduct(idx) {
+    const p = inventory[idx];
+    if(!confirm(`Excluir "${p.name}"?\nEssa ação não pode ser desfeita.`)) return;
+    inventory.splice(idx, 1);
+    localStorage.setItem('nilson_pro_inv', JSON.stringify(inventory));
+    renderInventory();
+}
+
+function closeModal() {
+    document.getElementById('modal-edit').style.display = 'none';
+}
+
+// ===== BUSCA / VENDA =====
+function handleSearch(e) {
+    if(e.key !== 'Enter') return;
+    const query = e.target.value.trim().toLowerCase();
+    const p = inventory.find(i =>
+        (i.customCode && i.customCode.toLowerCase() === query) ||
+        i.id.toString() === query ||
+        i.name.toLowerCase().includes(query)
+    );
+    if(p) {
+        const inCart = cart.find(c => c.id === p.id);
+        if(inCart) inCart.qty += 1;
+        else cart.push({...p, qty: 1});
+        renderCart();
+        e.target.value = '';
+    } else {
+        alert("Produto não encontrado!");
+    }
+}
+
+function updateCartQty(idx, val) {
+    cart[idx].qty = parseFloat(val) || 0;
+    renderCart();
+}
+
+function renderCart() {
+    let total = 0;
+    const body = document.getElementById('cart-body');
+    const side = document.getElementById('side-items');
+    body.innerHTML = ''; side.innerHTML = '';
+
+    cart.forEach((item, i) => {
+        if(item.qty <= 0) return;
+        const sub = item.sale * item.qty;
+        total += sub;
+        body.innerHTML += `<tr>
+            <td>${item.name}</td>
+            <td><input type="number" class="qty-edit" value="${item.qty}" min="0.1" step="0.1" onchange="updateCartQty(${i}, this.value)"></td>
+            <td>R$ ${item.sale.toFixed(2)}</td>
+            <td><b>R$ ${sub.toFixed(2)}</b></td>
+            <td><button class="btn-icon btn-del" onclick="cart.splice(${i},1); renderCart();" title="Remover">✕</button></td>
+        </tr>`;
+        side.innerHTML += `<div style="padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.08)">${item.qty}× ${item.name}<span style="float:right; color:var(--secondary)">R$ ${sub.toFixed(2)}</span></div>`;
+    });
+
+    document.getElementById('grand-total').innerText = total.toFixed(2);
+    document.getElementById('cart-count').innerText = cart.length ? `${cart.length} item(s) no carrinho` : '';
+}
+
+function cancelarVenda() {
+    if(!cart.length) return;
+    if(!confirm("Cancelar a venda atual?")) return;
+    cart = [];
+    renderCart();
+}
+
+// ===== FINALIZAR VENDA =====
+function finish(method) {
+    if(!cart.length) return alert("Carrinho vazio!");
+    const total = cart.reduce((a, item) => a + (item.sale * item.qty), 0);
+
+    cart.forEach(item => {
+        const p = inventory.find(inv => inv.id === item.id);
+        if(p) p.stock -= item.qty;
+    });
+
+    sales.push({ date: new Date().toISOString(), total, method, seller: currentSeller });
+    localStorage.setItem('nilson_pro_inv', JSON.stringify(inventory));
+    localStorage.setItem('nilson_pro_sales', JSON.stringify(sales));
+
+    // Cupom
+    document.getElementById('r-total').innerText = total.toFixed(2);
+    document.getElementById('r-details-pay').innerHTML = `PAGAMENTO: ${method}<br>VENDEDOR: ${currentSeller}<br>${new Date().toLocaleString()}`;
+    document.getElementById('r-list').innerHTML = cart.map(i => `<div class="r-item">${i.name}</div><div class="r-details"><span>${i.qty} UN × R$ ${i.sale.toFixed(2)}</span><span>R$ ${(i.qty*i.sale).toFixed(2)}</span></div>`).join('');
+
+    window.print();
+    cart = [];
+    renderCart();
+    renderInventory();
+}
+
+// ===== RELATÓRIOS =====
+function renderReports() {
+    const hoje = new Date().toLocaleDateString();
+    const mes = new Date().toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' });
+    const selFilter = document.getElementById('filter-seller').value;
+    const metFilter = document.getElementById('filter-method').value;
+
+    const vHoje = sales.filter(s => new Date(s.date).toLocaleDateString() === hoje);
+    const vMes = sales.filter(s => new Date(s.date).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }) === mes);
+
+    document.getElementById('stat-hoje').innerText = "R$ " + vHoje.reduce((a,b) => a+b.total, 0).toFixed(2);
+    document.getElementById('stat-mes').innerText = "R$ " + vMes.reduce((a,b) => a+b.total, 0).toFixed(2);
+    document.getElementById('stat-abertura').innerText = "R$ " + caixaAbertura.valor.toFixed(2);
+
+    // Popular select de vendedores
+    const sellers = [...new Set(sales.map(s => s.seller))];
+    const selEl = document.getElementById('filter-seller');
+    const curVal = selEl.value;
+    selEl.innerHTML = '<option value="">Todos os Vendedores</option>' + sellers.map(s => `<option ${s === curVal ? 'selected' : ''}>${s}</option>`).join('');
+
+    let filtered = [...vHoje].reverse();
+    if(selFilter) filtered = filtered.filter(s => s.seller === selFilter);
+    if(metFilter) filtered = filtered.filter(s => s.method === metFilter);
+
+    document.getElementById('history-body').innerHTML = filtered.map(s =>
+        `<tr><td>${new Date(s.date).toLocaleTimeString()}</td><td>${s.seller}</td><td><b>R$ ${s.total.toFixed(2)}</b></td><td>${s.method}</td></tr>`
+    ).join('') || '<tr><td colspan="4" style="text-align:center;color:#aaa;padding:20px">Nenhuma venda hoje</td></tr>';
+}
+
+// ===== BACKUP =====
+function exportBackup(tipo) {
+    let data, filename;
+    const date = new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
+
+    if(tipo === 'produtos') { data = { inv: inventory }; filename = `backup_produtos_${date}.json`; }
+    else if(tipo === 'financas') { data = { sales }; filename = `backup_financas_${date}.json`; }
+    else { data = { inv: inventory, sales }; filename = `backup_completo_${date}.json`; }
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+}
+
+function importBackup(e) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+        try {
+            const data = JSON.parse(ev.target.result);
+            if(data.inv) { inventory = data.inv; localStorage.setItem('nilson_pro_inv', JSON.stringify(inventory)); }
+            if(data.sales) { sales = data.sales; localStorage.setItem('nilson_pro_sales', JSON.stringify(sales)); }
+            alert("✅ Backup restaurado com sucesso!");
+            renderInventory();
+        } catch { alert("❌ Arquivo inválido!"); }
+    };
+    reader.readAsText(e.target.files[0]);
+    e.target.value = '';
+}
+
+// ===== LOGIN =====
+function getUsuarios() {
+    return JSON.parse(localStorage.getItem('nilson_usuarios')) || {};
+}
+function salvarUsuarios(u) {
+    localStorage.setItem('nilson_usuarios', JSON.stringify(u));
+}
+
+function mostrarTela(id) {
+    document.querySelectorAll('.login-screen').forEach(t => t.classList.remove('ativo'));
+    document.getElementById(id).classList.add('ativo');
+    // Limpa msgs
+    ['login-error','criar-error','criar-ok','rec-error','rec-ok'].forEach(el => {
+        const e = document.getElementById(el); if(e) { e.style.display='none'; e.innerText=''; }
+    });
+}
+
+function fazerLogin() {
+    const user = document.getElementById('login-user').value.trim().toLowerCase();
+    const pass = document.getElementById('login-pass').value;
+    const errEl = document.getElementById('login-error');
+    const usuarios = getUsuarios();
+    if(usuarios[user] && usuarios[user] === pass) {
+        document.getElementById('login-overlay').style.display = 'none';
+        errEl.style.display = 'none';
+    } else {
+        errEl.innerText = '❌ Usuário ou senha incorretos';
+        errEl.style.display = 'block';
+        document.getElementById('login-pass').value = '';
+        document.getElementById('login-pass').focus();
+    }
+}
+
+function criarConta() {
+    const user = document.getElementById('criar-user').value.trim().toLowerCase();
+    const pass = document.getElementById('criar-pass').value;
+    const pass2 = document.getElementById('criar-pass2').value;
+    const errEl = document.getElementById('criar-error');
+    const okEl = document.getElementById('criar-ok');
+    errEl.style.display = 'none'; okEl.style.display = 'none';
+
+    if(!user || user.length < 3) { errEl.innerText='❌ Usuário deve ter ao menos 3 caracteres'; errEl.style.display='block'; return; }
+    if(!pass || pass.length < 4) { errEl.innerText='❌ Senha deve ter ao menos 4 caracteres'; errEl.style.display='block'; return; }
+    if(pass !== pass2) { errEl.innerText='❌ As senhas não coincidem'; errEl.style.display='block'; return; }
+
+    const usuarios = getUsuarios();
+    if(usuarios[user]) { errEl.innerText='❌ Esse usuário já existe'; errEl.style.display='block'; return; }
+
+    usuarios[user] = pass;
+    salvarUsuarios(usuarios);
+    okEl.style.display = 'block';
+    document.getElementById('criar-user').value = '';
+    document.getElementById('criar-pass').value = '';
+    document.getElementById('criar-pass2').value = '';
+    setTimeout(() => mostrarTela('tela-login'), 1500);
+}
+
+function recuperarSenha() {
+    const user = document.getElementById('rec-user').value.trim().toLowerCase();
+    const pass = document.getElementById('rec-pass').value;
+    const pass2 = document.getElementById('rec-pass2').value;
+    const errEl = document.getElementById('rec-error');
+    const okEl = document.getElementById('rec-ok');
+    errEl.style.display = 'none'; okEl.style.display = 'none';
+
+    const usuarios = getUsuarios();
+    if(!usuarios[user]) { errEl.innerText='❌ Usuário não encontrado'; errEl.style.display='block'; return; }
+    if(!pass || pass.length < 4) { errEl.innerText='❌ Senha deve ter ao menos 4 caracteres'; errEl.style.display='block'; return; }
+    if(pass !== pass2) { errEl.innerText='❌ As senhas não coincidem'; errEl.style.display='block'; return; }
+
+    usuarios[user] = pass;
+    salvarUsuarios(usuarios);
+    okEl.style.display = 'block';
+    document.getElementById('rec-pass').value = '';
+    document.getElementById('rec-pass2').value = '';
+    setTimeout(() => mostrarTela('tela-login'), 1500);
+}
+
+// ===== PWA — INSTALAR APP =====
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+});
+
+window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    document.getElementById('btn-install').style.display = 'none';
+});
+
+async function instalarApp() {
+    if(deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        if(outcome === 'accepted') { document.getElementById('btn-install').style.display = 'none'; return; }
+    }
+    document.getElementById('modal-install').classList.add('open');
+}
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('Service Worker registrado com sucesso!', reg.scope))
+            .catch(err => console.error('Erro ao registrar o Service Worker:', err));
+    });
+}
+</script>
+</body>
+</html>
