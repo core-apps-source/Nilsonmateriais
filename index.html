@@ -520,6 +520,8 @@ function abrirCaixa() {
     document.getElementById('caixa-overlay').style.display = 'none';
     renderInventory();
     updateNextId();
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) searchInput.focus();
 }
 
 function pedirFecharCaixa() {
@@ -559,6 +561,10 @@ function showTab(id, btn) {
     if(btn) btn.classList.add('active');
     if(id === 'relatorios') renderReports();
     if(id === 'estoque') renderInventory();
+    if(id === 'venda') {
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) searchInput.focus();
+    }
 }
 
 // ===== PRÓXIMO ID =====
@@ -729,12 +735,16 @@ function handleSearch(e) {
         e.target.value = '';
     } else {
         alert("Produto não encontrado!");
+        e.target.focus();
+        e.target.select();
     }
 }
 
 function updateCartQty(idx, val) {
     cart[idx].qty = parseFloat(val) || 0;
     renderCart();
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) searchInput.focus();
 }
 
 function renderCart() {
@@ -752,7 +762,7 @@ function renderCart() {
             <td><input type="number" class="qty-edit" value="${item.qty}" min="0.1" step="0.1" onchange="updateCartQty(${i}, this.value)"></td>
             <td>R$ ${item.sale.toFixed(2)}</td>
             <td><b>R$ ${sub.toFixed(2)}</b></td>
-            <td><button class="btn-icon btn-del" onclick="cart.splice(${i},1); renderCart();" title="Remover">✕</button></td>
+            <td><button class="btn-icon btn-del" onclick="cart.splice(${i},1); renderCart(); const searchInput = document.getElementById('search-input'); if(searchInput) searchInput.focus();" title="Remover">✕</button></td>
         </tr>`;
         side.innerHTML += `<div style="padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.08)">${item.qty}× ${item.name}<span style="float:right; color:var(--secondary)">R$ ${sub.toFixed(2)}</span></div>`;
     });
@@ -766,12 +776,28 @@ function cancelarVenda() {
     if(!confirm("Cancelar a venda atual?")) return;
     cart = [];
     renderCart();
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) searchInput.focus();
 }
 
 // ===== FINALIZAR VENDA =====
 function finish(method) {
     if(!cart.length) return alert("Carrinho vazio!");
     const total = cart.reduce((a, item) => a + (item.sale * item.qty), 0);
+
+    let trocoText = "";
+    if (method === 'Dinheiro') {
+        const valorPagoInput = prompt(`Total da Venda: R$ ${total.toFixed(2)}\nDigite o valor pago pelo cliente:`);
+        if (valorPagoInput === null) return; // Se cancelar o prompt, aborta a finalização
+        const valorPago = parseFloat(valorPagoInput.replace(',', '.')) || 0;
+        if (valorPago < total) {
+            alert("Valor pago é insuficiente!");
+            return;
+        }
+        const troco = valorPago - total;
+        alert(`Troco: R$ ${troco.toFixed(2)}`);
+        trocoText = `<br>RECEBIDO: R$ ${valorPago.toFixed(2)}<br>TROCO: R$ ${troco.toFixed(2)}`;
+    }
 
     cart.forEach(item => {
         const p = inventory.find(inv => inv.id === item.id);
@@ -784,13 +810,15 @@ function finish(method) {
 
     // Cupom
     document.getElementById('r-total').innerText = total.toFixed(2);
-    document.getElementById('r-details-pay').innerHTML = `PAGAMENTO: ${method}<br>VENDEDOR: ${currentSeller}<br>${new Date().toLocaleString()}`;
+    document.getElementById('r-details-pay').innerHTML = `PAGAMENTO: ${method}${trocoText}<br>VENDEDOR: ${currentSeller}<br>${new Date().toLocaleString()}`;
     document.getElementById('r-list').innerHTML = cart.map(i => `<div class="r-item">${i.name}</div><div class="r-details"><span>${i.qty} UN × R$ ${i.sale.toFixed(2)}</span><span>R$ ${(i.qty*i.sale).toFixed(2)}</span></div>`).join('');
 
     window.print();
     cart = [];
     renderCart();
     renderInventory();
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) searchInput.focus();
 }
 
 // ===== RELATÓRIOS =====
