@@ -141,29 +141,58 @@
             display: flex; align-items: center; justify-content: center; z-index: 99999;
         }
         .login-box {
-            background: white; border-radius: 16px; padding: 45px 40px; max-width: 400px; width: 90%;
+            background: white; border-radius: 16px; padding: 40px 38px; max-width: 400px; width: 90%;
             box-shadow: 0 25px 80px rgba(0,0,0,0.6); text-align: center;
         }
         .login-box .logo { font-size: 52px; margin-bottom: 8px; }
         .login-box h2 { font-family: 'Barlow Condensed', sans-serif; font-size: 1.9em; color: var(--primary); margin: 0 0 4px; }
-        .login-box .sub { color: #aaa; font-size: 13px; margin-bottom: 28px; }
+        .login-box .sub { color: #aaa; font-size: 13px; margin-bottom: 22px; }
         .login-box label { display: block; text-align: left; font-size: 12px; font-weight: 700; color: #555; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .login-box input { width: 100%; padding: 12px 14px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; font-family: 'Barlow', sans-serif; margin-bottom: 14px; transition: border 0.2s; }
+        .login-box input { width: 100%; padding: 12px 14px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; font-family: 'Barlow', sans-serif; margin-bottom: 13px; transition: border 0.2s; }
         .login-box input:focus { border-color: var(--secondary); outline: none; }
-        .btn-login { width: 100%; padding: 15px; background: var(--secondary); color: white; border: none; border-radius: 8px; font-size: 17px; font-weight: 700; cursor: pointer; font-family: 'Barlow', sans-serif; letter-spacing: 1px; transition: background 0.2s; margin-top: 4px; }
+        .btn-login { width: 100%; padding: 14px; background: var(--secondary); color: white; border: none; border-radius: 8px; font-size: 17px; font-weight: 700; cursor: pointer; font-family: 'Barlow', sans-serif; letter-spacing: 1px; transition: background 0.2s; margin-top: 2px; }
         .btn-login:hover { background: #b94600; }
-        .login-error { color: var(--danger); font-size: 13px; font-weight: 700; margin: -8px 0 12px; display: none; }
-        .login-hint { font-size: 12px; color: #bbb; margin-top: 18px; }
+        .btn-login.verde { background: var(--success); }
+        .btn-login.verde:hover { background: #219a52; }
+        .login-error { color: var(--danger); font-size: 13px; font-weight: 700; margin: -8px 0 10px; display: none; }
+        .login-success { color: var(--success); font-size: 13px; font-weight: 700; margin: -8px 0 10px; display: none; }
+        .login-links { display: flex; justify-content: space-between; margin-top: 14px; }
+        .login-links a { font-size: 13px; color: var(--info); cursor: pointer; text-decoration: none; font-weight: 600; }
+        .login-links a:hover { text-decoration: underline; }
+        .login-screen { display: none; }
+        .login-screen.ativo { display: block; }
+        .btn-voltar { background: none; border: none; color: #aaa; font-size: 13px; cursor: pointer; font-family: 'Barlow', sans-serif; margin-top: 10px; text-decoration: underline; }
 
         /* INSTALAR APP */
         #btn-install {
             position: fixed; bottom: 20px; right: 20px; background: var(--info); color: white;
             border: none; border-radius: 50px; padding: 12px 22px; font-weight: 700; font-size: 14px;
-            cursor: pointer; display: none; align-items: center; gap: 8px;
+            cursor: pointer; display: flex; align-items: center; gap: 8px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.35); z-index: 8000;
             font-family: 'Barlow', sans-serif; transition: background 0.15s;
         }
         #btn-install:hover { background: #1a6fa0; }
+
+        /* MODAL INSTALAR */
+        #modal-install {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            display: none; align-items: center; justify-content: center; z-index: 9000;
+        }
+        #modal-install.open { display: flex; }
+        .install-box {
+            background: white; border-radius: 16px; padding: 32px 30px; max-width: 460px; width: 92%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4); text-align: center;
+        }
+        .install-box h3 { font-family: 'Barlow Condensed', sans-serif; font-size: 1.7em; color: var(--primary); margin: 0 0 6px; }
+        .install-box .isub { color: #888; font-size: 13px; margin-bottom: 24px; }
+        .install-platforms { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+        .install-card { background: #f8f9fa; border: 2px solid #e8e8e8; border-radius: 12px; padding: 18px 14px; }
+        .install-card .icon { font-size: 32px; margin-bottom: 8px; }
+        .install-card h4 { font-family: 'Barlow Condensed', sans-serif; font-size: 1.1em; color: var(--primary); margin: 0 0 10px; }
+        .install-card ol { text-align: left; font-size: 13px; color: #555; padding-left: 18px; margin: 0; line-height: 1.9; }
+        .install-card ol b { color: var(--primary); }
+        .btn-fechar-install { background: #eee; border: none; border-radius: 8px; padding: 10px 28px; font-weight: 700; font-family: 'Barlow', sans-serif; cursor: pointer; font-size: 14px; color: #555; }
+        .btn-fechar-install:hover { background: #ddd; }
     </style>
 </head>
 <body>
@@ -173,19 +202,86 @@
     <div class="login-box">
         <div class="logo">🏪</div>
         <h2>NILSON MATERIAIS</h2>
-        <p class="sub">PDV Pro Max — Faça login para continuar</p>
-        <label>Usuário</label>
-        <input type="text" id="login-user" placeholder="Digite seu usuário" autocomplete="username" onkeypress="if(event.key==='Enter') document.getElementById('login-pass').focus()">
-        <label>Senha</label>
-        <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" onkeypress="if(event.key==='Enter') fazerLogin()">
-        <div class="login-error" id="login-error">❌ Usuário ou senha incorretos</div>
-        <button class="btn-login" onclick="fazerLogin()">🔐 ENTRAR</button>
-        <p class="login-hint">Usuário padrão: <b>admin</b> | Senha: <b>1234</b></p>
+
+        <!-- TELA: ENTRAR -->
+        <div id="tela-login" class="login-screen ativo">
+            <p class="sub">PDV Pro Max — Faça login para continuar</p>
+            <label>Usuário</label>
+            <input type="text" id="login-user" placeholder="Digite seu usuário" autocomplete="username" onkeypress="if(event.key==='Enter') document.getElementById('login-pass').focus()">
+            <label>Senha</label>
+            <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" onkeypress="if(event.key==='Enter') fazerLogin()">
+            <div class="login-error" id="login-error">❌ Usuário ou senha incorretos</div>
+            <button class="btn-login" onclick="fazerLogin()">🔐 ENTRAR</button>
+            <div class="login-links">
+                <a onclick="mostrarTela('tela-criar')">Não tem conta? Criar conta</a>
+                <a onclick="mostrarTela('tela-recuperar')">Esqueceu a senha?</a>
+            </div>
+        </div>
+
+        <!-- TELA: CRIAR CONTA -->
+        <div id="tela-criar" class="login-screen">
+            <p class="sub">Crie seu acesso ao sistema</p>
+            <label>Usuário</label>
+            <input type="text" id="criar-user" placeholder="Escolha um usuário">
+            <label>Senha</label>
+            <input type="password" id="criar-pass" placeholder="Crie uma senha">
+            <label>Confirmar Senha</label>
+            <input type="password" id="criar-pass2" placeholder="Repita a senha" onkeypress="if(event.key==='Enter') criarConta()">
+            <div class="login-error" id="criar-error"></div>
+            <div class="login-success" id="criar-ok">✅ Conta criada! Faça login.</div>
+            <button class="btn-login verde" onclick="criarConta()">✅ CRIAR CONTA</button>
+            <br><button class="btn-voltar" onclick="mostrarTela('tela-login')">← Voltar ao login</button>
+        </div>
+
+        <!-- TELA: RECUPERAR SENHA -->
+        <div id="tela-recuperar" class="login-screen">
+            <p class="sub">Redefinir senha</p>
+            <label>Usuário</label>
+            <input type="text" id="rec-user" placeholder="Digite seu usuário">
+            <label>Nova Senha</label>
+            <input type="password" id="rec-pass" placeholder="Nova senha">
+            <label>Confirmar Nova Senha</label>
+            <input type="password" id="rec-pass2" placeholder="Repita a nova senha" onkeypress="if(event.key==='Enter') recuperarSenha()">
+            <div class="login-error" id="rec-error"></div>
+            <div class="login-success" id="rec-ok">✅ Senha alterada! Faça login.</div>
+            <button class="btn-login" onclick="recuperarSenha()">🔑 REDEFINIR SENHA</button>
+            <br><button class="btn-voltar" onclick="mostrarTela('tela-login')">← Voltar ao login</button>
+        </div>
     </div>
 </div>
 
 <!-- BOTÃO INSTALAR APP -->
 <button id="btn-install" onclick="instalarApp()">📲 Instalar App</button>
+
+<!-- MODAL INSTALAR -->
+<div id="modal-install">
+    <div class="install-box">
+        <div style="font-size:40px; margin-bottom:8px">📲</div>
+        <h3>Instalar o App</h3>
+        <p class="isub">Adicione o PDV à tela inicial do seu dispositivo para acesso rápido</p>
+        <div class="install-platforms">
+            <div class="install-card">
+                <div class="icon">💻</div>
+                <h4>PC — Chrome / Edge</h4>
+                <ol>
+                    <li>Abra o arquivo no <b>Chrome</b> ou <b>Edge</b></li>
+                    <li>Clique no ícone <b>⊕</b> ou <b>⬇</b> na barra de endereços</li>
+                    <li>Clique em <b>"Instalar"</b></li>
+                </ol>
+            </div>
+            <div class="install-card">
+                <div class="icon">📱</div>
+                <h4>Celular — Android / iOS</h4>
+                <ol>
+                    <li>Abra no <b>Chrome</b> (Android) ou <b>Safari</b> (iPhone)</li>
+                    <li>Toque nos <b>3 pontos</b> ou no ícone de <b>compartilhar</b></li>
+                    <li>Selecione <b>"Adicionar à tela inicial"</b></li>
+                </ol>
+            </div>
+        </div>
+        <button class="btn-fechar-install" onclick="document.getElementById('modal-install').classList.remove('open')">Fechar</button>
+    </div>
+</div>
 
 <!-- OVERLAY ABRIR CAIXA -->
 <div id="caixa-overlay">
@@ -755,20 +851,81 @@ function importBackup(e) {
 }
 
 // ===== LOGIN =====
-const LOGIN_USERS = { 'admin': '1234', 'nilson': 'nilson123' };
+function getUsuarios() {
+    return JSON.parse(localStorage.getItem('nilson_usuarios')) || {};
+}
+function salvarUsuarios(u) {
+    localStorage.setItem('nilson_usuarios', JSON.stringify(u));
+}
+
+function mostrarTela(id) {
+    document.querySelectorAll('.login-screen').forEach(t => t.classList.remove('ativo'));
+    document.getElementById(id).classList.add('ativo');
+    // Limpa msgs
+    ['login-error','criar-error','criar-ok','rec-error','rec-ok'].forEach(el => {
+        const e = document.getElementById(el); if(e) { e.style.display='none'; e.innerText=''; }
+    });
+}
 
 function fazerLogin() {
     const user = document.getElementById('login-user').value.trim().toLowerCase();
     const pass = document.getElementById('login-pass').value;
     const errEl = document.getElementById('login-error');
-    if(LOGIN_USERS[user] !== undefined && LOGIN_USERS[user] === pass) {
+    const usuarios = getUsuarios();
+    if(usuarios[user] && usuarios[user] === pass) {
         document.getElementById('login-overlay').style.display = 'none';
         errEl.style.display = 'none';
     } else {
+        errEl.innerText = '❌ Usuário ou senha incorretos';
         errEl.style.display = 'block';
         document.getElementById('login-pass').value = '';
         document.getElementById('login-pass').focus();
     }
+}
+
+function criarConta() {
+    const user = document.getElementById('criar-user').value.trim().toLowerCase();
+    const pass = document.getElementById('criar-pass').value;
+    const pass2 = document.getElementById('criar-pass2').value;
+    const errEl = document.getElementById('criar-error');
+    const okEl = document.getElementById('criar-ok');
+    errEl.style.display = 'none'; okEl.style.display = 'none';
+
+    if(!user || user.length < 3) { errEl.innerText='❌ Usuário deve ter ao menos 3 caracteres'; errEl.style.display='block'; return; }
+    if(!pass || pass.length < 4) { errEl.innerText='❌ Senha deve ter ao menos 4 caracteres'; errEl.style.display='block'; return; }
+    if(pass !== pass2) { errEl.innerText='❌ As senhas não coincidem'; errEl.style.display='block'; return; }
+
+    const usuarios = getUsuarios();
+    if(usuarios[user]) { errEl.innerText='❌ Esse usuário já existe'; errEl.style.display='block'; return; }
+
+    usuarios[user] = pass;
+    salvarUsuarios(usuarios);
+    okEl.style.display = 'block';
+    document.getElementById('criar-user').value = '';
+    document.getElementById('criar-pass').value = '';
+    document.getElementById('criar-pass2').value = '';
+    setTimeout(() => mostrarTela('tela-login'), 1500);
+}
+
+function recuperarSenha() {
+    const user = document.getElementById('rec-user').value.trim().toLowerCase();
+    const pass = document.getElementById('rec-pass').value;
+    const pass2 = document.getElementById('rec-pass2').value;
+    const errEl = document.getElementById('rec-error');
+    const okEl = document.getElementById('rec-ok');
+    errEl.style.display = 'none'; okEl.style.display = 'none';
+
+    const usuarios = getUsuarios();
+    if(!usuarios[user]) { errEl.innerText='❌ Usuário não encontrado'; errEl.style.display='block'; return; }
+    if(!pass || pass.length < 4) { errEl.innerText='❌ Senha deve ter ao menos 4 caracteres'; errEl.style.display='block'; return; }
+    if(pass !== pass2) { errEl.innerText='❌ As senhas não coincidem'; errEl.style.display='block'; return; }
+
+    usuarios[user] = pass;
+    salvarUsuarios(usuarios);
+    okEl.style.display = 'block';
+    document.getElementById('rec-pass').value = '';
+    document.getElementById('rec-pass2').value = '';
+    setTimeout(() => mostrarTela('tela-login'), 1500);
 }
 
 // ===== PWA — INSTALAR APP =====
@@ -777,23 +934,21 @@ let deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    document.getElementById('btn-install').style.display = 'flex';
 });
 
 window.addEventListener('appinstalled', () => {
-    document.getElementById('btn-install').style.display = 'none';
     deferredPrompt = null;
+    document.getElementById('btn-install').style.display = 'none';
 });
 
 async function instalarApp() {
-    if(!deferredPrompt) {
-        alert('Para instalar:\n📱 Celular: toque no menu do navegador e selecione "Adicionar à tela inicial"\n💻 PC: clique no ícone ⊕ na barra de endereços do Chrome');
-        return;
+    if(deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        if(outcome === 'accepted') { document.getElementById('btn-install').style.display = 'none'; return; }
     }
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    deferredPrompt = null;
-    document.getElementById('btn-install').style.display = 'none';
+    document.getElementById('modal-install').classList.add('open');
 }
 
 // PWA Manifest dinâmico
@@ -818,10 +973,8 @@ async function instalarApp() {
     document.head.appendChild(link);
 })();
 
-// Service Worker mínimo para PWA
 if('serviceWorker' in navigator) {
     const swCode = `
-        const CACHE = 'nilson-pdv-v1';
         self.addEventListener('install', e => { self.skipWaiting(); });
         self.addEventListener('activate', e => { e.waitUntil(clients.claim()); });
         self.addEventListener('fetch', e => {
