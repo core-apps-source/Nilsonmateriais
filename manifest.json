@@ -1,0 +1,24 @@
+{
+  "name": "PDV Nilson Materiais Pro Max",
+  "short_name": "Nilson PDV",
+  "description": "Sistema de PDV Nilson Materiais",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#1a252f",
+  "theme_color": "#d35400",
+  "icons": [
+    {
+      "src": "https://placehold.co/192x192/d35400/ffffff.png?text=NM",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://placehold.co/512x512/d35400/ffffff.png?text=NM",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
