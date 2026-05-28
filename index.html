@@ -834,7 +834,7 @@ function finish(method) {
     // Cupom
     document.getElementById('r-total').innerText = total.toFixed(2);
     document.getElementById('r-details-pay').innerHTML = `PAGAMENTO: ${method}${trocoText}<br>VENDEDOR: ${currentSeller}<br>${new Date().toLocaleString()}`;
-    document.getElementById('r-list').innerHTML = cart.map(i => `<div class="r-item">${i.name}</div><div class="r-details"><span>${i.qty} UN × R$ ${i.sale.toFixed(2)}</span><span>R$ ${(i.qty*i.sale).toFixed(2)}</span></div>`).join('');
+    document.getElementById('r-list').innerHTML = cart.map(i => `<div class="r-item">#${i.id} - ${i.name}</div><div class="r-details"><span>${i.qty} UN × R$ ${i.sale.toFixed(2)}</span><span>R$ ${(i.qty*i.sale).toFixed(2)}</span></div>`).join('');
 
     window.print();
     cart = [];
