@@ -166,36 +166,7 @@
         .login-screen.ativo { display: block; }
         .btn-voltar { background: none; border: none; color: #aaa; font-size: 13px; cursor: pointer; font-family: 'Barlow', sans-serif; margin-top: 10px; text-decoration: underline; }
 
-        /* INSTALAR APP */
-        #btn-install {
-            position: fixed; bottom: 20px; right: 20px; background: var(--info); color: white;
-            border: none; border-radius: 50px; padding: 12px 22px; font-weight: 700; font-size: 14px;
-            cursor: pointer; display: flex; align-items: center; gap: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.35); z-index: 8000;
-            font-family: 'Barlow', sans-serif; transition: background 0.15s;
-        }
-        #btn-install:hover { background: #1a6fa0; }
 
-        /* MODAL INSTALAR */
-        #modal-install {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
-            display: none; align-items: center; justify-content: center; z-index: 9000;
-        }
-        #modal-install.open { display: flex; }
-        .install-box {
-            background: white; border-radius: 16px; padding: 32px 30px; max-width: 460px; width: 92%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.4); text-align: center;
-        }
-        .install-box h3 { font-family: 'Barlow Condensed', sans-serif; font-size: 1.7em; color: var(--primary); margin: 0 0 6px; }
-        .install-box .isub { color: #888; font-size: 13px; margin-bottom: 24px; }
-        .install-platforms { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
-        .install-card { background: #f8f9fa; border: 2px solid #e8e8e8; border-radius: 12px; padding: 18px 14px; }
-        .install-card .icon { font-size: 32px; margin-bottom: 8px; }
-        .install-card h4 { font-family: 'Barlow Condensed', sans-serif; font-size: 1.1em; color: var(--primary); margin: 0 0 10px; }
-        .install-card ol { text-align: left; font-size: 13px; color: #555; padding-left: 18px; margin: 0; line-height: 1.9; }
-        .install-card ol b { color: var(--primary); }
-        .btn-fechar-install { background: #eee; border: none; border-radius: 8px; padding: 10px 28px; font-weight: 700; font-family: 'Barlow', sans-serif; cursor: pointer; font-size: 14px; color: #555; }
-        .btn-fechar-install:hover { background: #ddd; }
     </style>
 </head>
 <body>
@@ -253,38 +224,7 @@
     </div>
 </div>
 
-<!-- BOTÃO INSTALAR APP -->
-<button id="btn-install" onclick="instalarApp()">📲 Instalar App</button>
 
-<!-- MODAL INSTALAR -->
-<div id="modal-install">
-    <div class="install-box">
-        <div style="font-size:40px; margin-bottom:8px">📲</div>
-        <h3>Instalar o App</h3>
-        <p class="isub">Adicione o PDV à tela inicial do seu dispositivo para acesso rápido</p>
-        <div class="install-platforms">
-            <div class="install-card">
-                <div class="icon">💻</div>
-                <h4>PC — Chrome / Edge</h4>
-                <ol>
-                    <li>Abra o arquivo no <b>Chrome</b> ou <b>Edge</b></li>
-                    <li>Clique no ícone <b>⊕</b> ou <b>⬇</b> na barra de endereços</li>
-                    <li>Clique em <b>"Instalar"</b></li>
-                </ol>
-            </div>
-            <div class="install-card">
-                <div class="icon">📱</div>
-                <h4>Celular — Android / iOS</h4>
-                <ol>
-                    <li>Abra no <b>Chrome</b> (Android) ou <b>Safari</b> (iPhone)</li>
-                    <li>Toque nos <b>3 pontos</b> ou no ícone de <b>compartilhar</b></li>
-                    <li>Selecione <b>"Adicionar à tela inicial"</b></li>
-                </ol>
-            </div>
-        </div>
-        <button class="btn-fechar-install" onclick="document.getElementById('modal-install').classList.remove('open')">Fechar</button>
-    </div>
-</div>
 
 <!-- OVERLAY ABRIR CAIXA -->
 <div id="caixa-overlay">
@@ -333,6 +273,19 @@
     </div>
 </div>
 
+<!-- MODAL DETALHES DA VENDA -->
+<div id="modal-detalhes-venda" class="modal-overlay" style="display:none">
+    <div class="modal-box" style="max-width: 450px;">
+        <h3 style="margin-top: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 1.5em; color: var(--primary);">📋 Detalhes da Venda</h3>
+        <div id="detalhes-venda-conteudo" style="background:#f8f9fa; border-radius:8px; padding:15px; font-size:14px; max-height: 300px; overflow-y: auto; line-height: 1.6; border: 2px solid #e8e8e8;">
+            <!-- Items will be injected here -->
+        </div>
+        <div class="modal-actions" style="margin-top: 15px;">
+            <button class="btn-pay" style="background:var(--primary); width:100%" onclick="fecharModalDetalhes()">FECHAR</button>
+        </div>
+    </div>
+</div>
+
 <div class="container">
     <div class="main-panel">
         <div class="tabs">
@@ -345,6 +298,7 @@
         <div id="venda" class="tab-content active">
             <label>Busca Rápida (Nome, Código de Busca ou Nº Registro)</label>
             <input type="text" id="search-input" placeholder="Digite o produto ou bipe o código..." onkeypress="handleSearch(event)" style="font-size:17px; padding:12px; margin-bottom:12px">
+            <div id="search-results" style="display:none; background:white; border:2px solid #ddd; border-radius:6px; max-height:200px; overflow-y:auto; margin-top:-10px; margin-bottom:15px; box-shadow:0 4px 12px rgba(0,0,0,0.1)"></div>
             <table id="cart-table">
                 <thead><tr><th>Produto</th><th>Qtd</th><th>Unitário</th><th>Subtotal</th><th></th></tr></thead>
                 <tbody id="cart-body"></tbody>
@@ -412,7 +366,7 @@
             </div>
 
             <!-- BUSCA ESTOQUE -->
-            <div class="section-divider" style="margin-top:20px">📋 Produtos Cadastrados</div>
+            <div class="section-divider" style="margin-top:20px">📋 Produtos Cadastrados (<span id="total-itens-estoque">0</span>)</div>
             <input type="text" id="search-inv" placeholder="Buscar produto no estoque..." oninput="renderInventory()" style="margin-bottom:10px">
 
             <table id="inventory-table">
@@ -449,7 +403,7 @@
                 </select>
             </div>
             <table>
-                <thead><tr><th>Hora</th><th>Vendedor</th><th>Total</th><th>Pagamento</th></tr></thead>
+                <thead><tr><th>Data/Hora</th><th>Vendedor</th><th>Total</th><th>Pagamento</th><th>Ações</th></tr></thead>
                 <tbody id="history-body"></tbody>
             </table>
         </div>
@@ -466,7 +420,8 @@
                 <button class="btn-fechar" onclick="pedirFecharCaixa()">🔒 Fechar Caixa</button>
             </div>
             <strong style="font-size: 22px; font-family:'Barlow Condensed',sans-serif; letter-spacing:1px">NILSON MATERIAIS</strong><br>
-            <small style="opacity:0.6">CNPJ: 43.407.588/0001-05</small>
+            <small style="opacity:0.6">CNPJ: 43.407.588/0001-05</small><br>
+            <small id="total-itens-sidebar" style="background: rgba(255,255,255,0.15); display: inline-block; padding: 3px 8px; border-radius: 12px; margin-top: 6px; font-size: 11px; font-weight: bold; color: var(--secondary);">📦 0 Itens Cadastrados</small>
         </div>
 
         <div id="side-items" style="flex-grow:1; overflow-y:auto; font-size:13px; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px"></div>
@@ -642,6 +597,16 @@ function saveProduct() {
 
 // ===== RENDER ESTOQUE =====
 function renderInventory() {
+    // Sort inventory strictly by registration number (id)
+    inventory.sort((a, b) => a.id - b.id);
+
+    // Update item counter on screen
+    const totalItens = inventory.length;
+    const elSidebar = document.getElementById('total-itens-sidebar');
+    if (elSidebar) elSidebar.innerText = `📦 ${totalItens} Itens Cadastrados`;
+    const elEstoque = document.getElementById('total-itens-estoque');
+    if (elEstoque) elEstoque.innerText = totalItens;
+
     const query = (document.getElementById('search-inv') ? document.getElementById('search-inv').value : '').toLowerCase();
     const filtered = query
         ? inventory.filter(p => p.name.toLowerCase().includes(query) || (p.customCode || '').toLowerCase().includes(query) || p.id.toString().includes(query))
@@ -722,21 +687,65 @@ function closeModal() {
 function handleSearch(e) {
     if(e.key !== 'Enter') return;
     const query = e.target.value.trim().toLowerCase();
-    const p = inventory.find(i =>
+    if (!query) return;
+
+    // Get all matching products (ID match or name match or custom code match)
+    const matches = inventory.filter(i =>
         (i.customCode && i.customCode.toLowerCase() === query) ||
         i.id.toString() === query ||
         i.name.toLowerCase().includes(query)
     );
-    if(p) {
-        const inCart = cart.find(c => c.id === p.id);
-        if(inCart) inCart.qty += 1;
-        else cart.push({...p, qty: 1});
-        renderCart();
-        e.target.value = '';
-    } else {
+
+    const resultsEl = document.getElementById('search-results');
+
+    if (matches.length === 0) {
+        resultsEl.style.display = 'none';
         alert("Produto não encontrado!");
         e.target.focus();
         e.target.select();
+    } else if (matches.length === 1) {
+        // If exactly 1 match, add directly to cart
+        resultsEl.style.display = 'none';
+        addToCart(matches[0]);
+        e.target.value = '';
+    } else {
+        // Multiple matches! Display list
+        resultsEl.innerHTML = matches.map(p => `
+            <div class="search-result-item" onclick="selectSearchResult(${p.id})" style="padding: 10px 15px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-family: 'Barlow', sans-serif; color: var(--primary);">
+                <span><strong>#${p.id}</strong> - ${p.name}</span>
+                <span style="color: var(--secondary); font-weight: bold;">R$ ${p.sale.toFixed(2)} (Estoque: ${p.stock})</span>
+            </div>
+        `).join('');
+        resultsEl.style.display = 'block';
+
+        // Add hover backgrounds dynamically
+        const items = resultsEl.querySelectorAll('.search-result-item');
+        items.forEach(item => {
+            item.addEventListener('mouseenter', () => item.style.backgroundColor = '#f5f5f5');
+            item.addEventListener('mouseleave', () => item.style.backgroundColor = 'transparent');
+        });
+    }
+}
+
+function addToCart(p) {
+    const inCart = cart.find(c => c.id === p.id);
+    if(inCart) inCart.qty += 1;
+    else cart.push({...p, qty: 1});
+    renderCart();
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) searchInput.focus();
+}
+
+function selectSearchResult(id) {
+    const p = inventory.find(i => i.id === id);
+    if (p) {
+        addToCart(p);
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.value = '';
+            searchInput.focus();
+        }
+        document.getElementById('search-results').style.display = 'none';
     }
 }
 
@@ -804,7 +813,14 @@ function finish(method) {
         if(p) p.stock -= item.qty;
     });
 
-    sales.push({ date: new Date().toISOString(), total, method, seller: currentSeller });
+    // Pushes full item details inside each sale
+    sales.push({ 
+        date: new Date().toISOString(), 
+        total, 
+        method, 
+        seller: currentSeller,
+        items: cart.map(i => ({ name: i.name, qty: i.qty, sale: i.sale }))
+    });
     localStorage.setItem('nilson_pro_inv', JSON.stringify(inventory));
     localStorage.setItem('nilson_pro_sales', JSON.stringify(sales));
 
@@ -841,13 +857,59 @@ function renderReports() {
     const curVal = selEl.value;
     selEl.innerHTML = '<option value="">Todos os Vendedores</option>' + sellers.map(s => `<option ${s === curVal ? 'selected' : ''}>${s}</option>`).join('');
 
-    let filtered = [...vHoje].reverse();
+    // Reverse array keeping track of original indices
+    let indexedSales = sales.map((s, idx) => ({ ...s, originalIndex: idx }));
+    let filtered = [...indexedSales].reverse();
     if(selFilter) filtered = filtered.filter(s => s.seller === selFilter);
     if(metFilter) filtered = filtered.filter(s => s.method === metFilter);
 
-    document.getElementById('history-body').innerHTML = filtered.map(s =>
-        `<tr><td>${new Date(s.date).toLocaleTimeString()}</td><td>${s.seller}</td><td><b>R$ ${s.total.toFixed(2)}</b></td><td>${s.method}</td></tr>`
-    ).join('') || '<tr><td colspan="4" style="text-align:center;color:#aaa;padding:20px">Nenhuma venda hoje</td></tr>';
+    document.getElementById('history-body').innerHTML = filtered.map(s => {
+        const dateStr = new Date(s.date).toLocaleString('pt-BR');
+        return `<tr>
+            <td>${dateStr}</td>
+            <td>${s.seller}</td>
+            <td><b>R$ ${s.total.toFixed(2)}</b></td>
+            <td>${s.method}</td>
+            <td>
+                <button class="btn-icon btn-edit" onclick="verDetalhesVenda(${s.originalIndex})" title="Ver Detalhes" style="font-size: 13px; width: auto; padding: 0 8px; height: 28px; line-height: 28px;">👁️ Detalhes</button>
+            </td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="5" style="text-align:center;color:#aaa;padding:20px">Nenhuma venda encontrada</td></tr>';
+}
+
+function verDetalhesVenda(idx) {
+    const sale = sales[idx];
+    if (!sale) return;
+
+    let html = `
+        <strong>Data/Hora:</strong> ${new Date(sale.date).toLocaleString('pt-BR')}<br>
+        <strong>Vendedor:</strong> ${sale.seller}<br>
+        <strong>Pagamento:</strong> ${sale.method}<br>
+        <hr style="border:none; border-top:1px solid #ddd; margin:10px 0">
+        <strong>Itens Vendidos:</strong><br>
+    `;
+
+    if (sale.items && sale.items.length > 0) {
+        html += `<ul style="padding-left: 20px; margin: 5px 0; line-height: 1.8;">`;
+        sale.items.forEach(item => {
+            html += `<li>${item.qty}x ${item.name} (R$ ${item.sale.toFixed(2)} un) - <strong>R$ ${(item.qty * item.sale).toFixed(2)}</strong></li>`;
+        });
+        html += `</ul>`;
+    } else {
+        html += `<span style="color:#aaa; font-style:italic;">Itens não registrados (venda antiga ou importada)</span>`;
+    }
+
+    html += `
+        <hr style="border:none; border-top:1px solid #ddd; margin:10px 0">
+        <div style="font-size: 16px; font-weight: bold; text-align: right; color: var(--secondary);">Total Geral: R$ ${sale.total.toFixed(2)}</div>
+    `;
+
+    document.getElementById('detalhes-venda-conteudo').innerHTML = html;
+    document.getElementById('modal-detalhes-venda').style.display = 'flex';
+}
+
+function fecharModalDetalhes() {
+    document.getElementById('modal-detalhes-venda').style.display = 'none';
 }
 
 // ===== BACKUP =====
@@ -931,66 +993,4 @@ function criarConta() {
 
     usuarios[user] = pass;
     salvarUsuarios(usuarios);
-    okEl.style.display = 'block';
-    document.getElementById('criar-user').value = '';
-    document.getElementById('criar-pass').value = '';
-    document.getElementById('criar-pass2').value = '';
-    setTimeout(() => mostrarTela('tela-login'), 1500);
-}
-
-function recuperarSenha() {
-    const user = document.getElementById('rec-user').value.trim().toLowerCase();
-    const pass = document.getElementById('rec-pass').value;
-    const pass2 = document.getElementById('rec-pass2').value;
-    const errEl = document.getElementById('rec-error');
-    const okEl = document.getElementById('rec-ok');
-    errEl.style.display = 'none'; okEl.style.display = 'none';
-
-    const usuarios = getUsuarios();
-    if(!usuarios[user]) { errEl.innerText='❌ Usuário não encontrado'; errEl.style.display='block'; return; }
-    if(!pass || pass.length < 4) { errEl.innerText='❌ Senha deve ter ao menos 4 caracteres'; errEl.style.display='block'; return; }
-    if(pass !== pass2) { errEl.innerText='❌ As senhas não coincidem'; errEl.style.display='block'; return; }
-
-    usuarios[user] = pass;
-    salvarUsuarios(usuarios);
-    okEl.style.display = 'block';
-    document.getElementById('rec-pass').value = '';
-    document.getElementById('rec-pass2').value = '';
-    setTimeout(() => mostrarTela('tela-login'), 1500);
-}
-
-// ===== PWA — INSTALAR APP =====
-let deferredPrompt = null;
-
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-});
-
-window.addEventListener('appinstalled', () => {
-    deferredPrompt = null;
-    document.getElementById('btn-install').style.display = 'none';
-});
-
-async function instalarApp() {
-    if(deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        deferredPrompt = null;
-        if(outcome === 'accepted') { document.getElementById('btn-install').style.display = 'none'; return; }
-    }
-    document.getElementById('modal-install').classList.add('open');
-}
-</script>
-
-<script>
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('Service Worker registrado com sucesso!', reg.scope))
-            .catch(err => console.error('Erro ao registrar o Service Worker:', err));
-    });
-}
-</script>
-</body>
-</html>
+    okEl.s
