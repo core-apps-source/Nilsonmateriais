@@ -372,7 +372,7 @@
             <table id="inventory-table">
                 <thead>
                     <tr>
-                        <th>Reg.</th>
+                        <th>Reg. <span id="sort-order-btn" onclick="toggleSortOrder()" style="cursor:pointer; user-select:none; color:var(--secondary); font-size:12px; margin-left:2px;">▲</span></th>
                         <th>Busca</th>
                         <th>Nome</th>
                         <th>Estoque</th>
@@ -402,10 +402,7 @@
                     <option>Crédito</option><option>Débito</option><option>PIX</option><option>Dinheiro</option>
                 </select>
             </div>
-            <table>
-                <thead><tr><th>Data/Hora</th><th>Vendedor</th><th>Total</th><th>Pagamento</th><th>Ações</th></tr></thead>
-                <tbody id="history-body"></tbody>
-            </table>
+            <div id="history-container" style="margin-top: 15px;"></div>
         </div>
     </div>
 
@@ -420,8 +417,7 @@
                 <button class="btn-fechar" onclick="pedirFecharCaixa()">🔒 Fechar Caixa</button>
             </div>
             <strong style="font-size: 22px; font-family:'Barlow Condensed',sans-serif; letter-spacing:1px">NILSON MATERIAIS</strong><br>
-            <small style="opacity:0.6">CNPJ: 43.407.588/0001-05</small><br>
-            <small id="total-itens-sidebar" style="background: rgba(255,255,255,0.15); display: inline-block; padding: 3px 8px; border-radius: 12px; margin-top: 6px; font-size: 11px; font-weight: bold; color: var(--secondary);">📦 0 Itens Cadastrados</small>
+            <small style="opacity:0.6">CNPJ: 43.407.588/0001-05</small>
         </div>
 
         <div id="side-items" style="flex-grow:1; overflow-y:auto; font-size:13px; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px"></div>
@@ -437,6 +433,7 @@
             <button class="btn-pay" style="background:#16a085" onclick="finish('PIX')">📱 PIX</button>
             <button class="btn-pay" style="background:#c0a010; color:white" onclick="finish('Dinheiro')">💵 DINHEIRO</button>
         </div>
+        <button id="side-install-btn" class="btn-pay" style="display:none; background:var(--secondary); width:100%; margin-bottom:8px;" onclick="instalarApp()">📲 INSTALAR PDV</button>
         <button class="btn-pay" style="background:var(--danger); width:100%" onclick="cancelarVenda()">🗑️ CANCELAR VENDA</button>
     </div>
 </div>
@@ -461,6 +458,7 @@ let cart = [];
 let currentSeller = "";
 let caixaAberto = false;
 let caixaAbertura = { valor: 0, hora: null };
+let inventorySortAsc = true;
 
 // ===== CAIXA =====
 function abrirCaixa() {
@@ -597,13 +595,15 @@ function saveProduct() {
 
 // ===== RENDER ESTOQUE =====
 function renderInventory() {
-    // Sort inventory strictly by registration number (id)
-    inventory.sort((a, b) => a.id - b.id);
+    // Sort inventory strictly by registration number (id) based on active order
+    if (inventorySortAsc) {
+        inventory.sort((a, b) => a.id - b.id);
+    } else {
+        inventory.sort((a, b) => b.id - a.id);
+    }
 
-    // Update item counter on screen
+    // Update item counter on screen (Estoque tab only)
     const totalItens = inventory.length;
-    const elSidebar = document.getElementById('total-itens-sidebar');
-    if (elSidebar) elSidebar.innerText = `📦 ${totalItens} Itens Cadastrados`;
     const elEstoque = document.getElementById('total-itens-estoque');
     if (elEstoque) elEstoque.innerText = totalItens;
 
@@ -631,6 +631,13 @@ function renderInventory() {
             </td>
         </tr>`;
     }).join('');
+}
+
+function toggleSortOrder() {
+    inventorySortAsc = !inventorySortAsc;
+    const btn = document.getElementById('sort-order-btn');
+    if (btn) btn.innerText = inventorySortAsc ? '▲' : '▼';
+    renderInventory();
 }
 
 // ===== EDITAR PRODUTO =====
@@ -863,18 +870,90 @@ function renderReports() {
     if(selFilter) filtered = filtered.filter(s => s.seller === selFilter);
     if(metFilter) filtered = filtered.filter(s => s.method === metFilter);
 
-    document.getElementById('history-body').innerHTML = filtered.map(s => {
-        const dateStr = new Date(s.date).toLocaleString('pt-BR');
-        return `<tr>
-            <td>${dateStr}</td>
-            <td>${s.seller}</td>
-            <td><b>R$ ${s.total.toFixed(2)}</b></td>
-            <td>${s.method}</td>
-            <td>
-                <button class="btn-icon btn-edit" onclick="verDetalhesVenda(${s.originalIndex})" title="Ver Detalhes" style="font-size: 13px; width: auto; padding: 0 8px; height: 28px; line-height: 28px;">👁️ Detalhes</button>
-            </td>
-        </tr>`;
-    }).join('') || '<tr><td colspan="5" style="text-align:center;color:#aaa;padding:20px">Nenhuma venda encontrada</td></tr>';
+    // Group filtered sales by day
+    const groups = {};
+    filtered.forEach(s => {
+        const day = new Date(s.date).toLocaleDateString('pt-BR');
+        if (!groups[day]) groups[day] = [];
+        groups[day].push(s);
+    });
+
+    const container = document.getElementById('history-container');
+    if (!container) return;
+
+    const sortedDays = Object.keys(groups).sort((a, b) => {
+        const partsA = a.split('/').reverse().join('');
+        const partsB = b.split('/').reverse().join('');
+        return partsB.localeCompare(partsA); // newest day first
+    });
+
+    if (sortedDays.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;background:white;border-radius:8px;border:1px solid #eee;font-family:\'Barlow\',sans-serif;">Nenhuma venda encontrada</div>';
+        return;
+    }
+
+    container.innerHTML = sortedDays.map((day, idx) => {
+        const daySales = groups[day];
+        const dayTotal = daySales.reduce((sum, s) => sum + s.total, 0);
+        const dayId = `day-group-${idx}`;
+        
+        // Open the group for "Today" automatically, hide other days
+        const isToday = day === new Date().toLocaleDateString('pt-BR');
+        const displayStyle = isToday ? 'block' : 'none';
+        const arrow = isToday ? '▲' : '▼';
+
+        const salesRows = daySales.map(s => {
+            const timeStr = new Date(s.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            return `<tr style="border-bottom:1px solid #f0f0f0;">
+                <td style="padding: 10px; font-family:'Barlow',sans-serif;">${timeStr}</td>
+                <td style="padding: 10px; font-family:'Barlow',sans-serif;">${s.seller}</td>
+                <td style="padding: 10px; font-family:'Barlow',sans-serif;"><b>R$ ${s.total.toFixed(2)}</b></td>
+                <td style="padding: 10px; font-family:'Barlow',sans-serif;">${s.method}</td>
+                <td style="padding: 10px;">
+                    <button class="btn-icon btn-edit" onclick="verDetalhesVenda(${s.originalIndex})" title="Ver Detalhes" style="font-size: 13px; width: auto; padding: 0 8px; height: 28px; line-height: 28px;">👁️ Detalhes</button>
+                </td>
+            </tr>`;
+        }).join('');
+
+        return `
+            <div class="day-group" style="margin-bottom: 12px; border: 2px solid #e8e8e8; border-radius: 8px; overflow: hidden; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
+                <div class="day-header" onclick="toggleDayGroup('${dayId}')" style="padding: 12px 18px; background: #fdfdfd; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: bold; border-bottom: 1px solid #eee; font-family: 'Barlow Condensed', sans-serif; font-size: 1.15em; color: var(--primary); user-select: none;">
+                    <span>📅 Vendas de ${day}</span>
+                    <span style="color: var(--secondary); font-size: 0.95em;">Total do Dia: R$ ${dayTotal.toFixed(2)} &nbsp;<span id="${dayId}-arrow" style="font-size: 0.85em;">${arrow}</span></span>
+                </div>
+                <div id="${dayId}" class="day-content" style="display: ${displayStyle}; padding: 12px; overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <thead>
+                            <tr style="background: #f8f9fa; border-bottom: 2px solid #eee;">
+                                <th style="padding: 10px; text-align: left; font-size: 12px; text-transform: uppercase; color: #888; font-family:'Barlow',sans-serif;">Hora</th>
+                                <th style="padding: 10px; text-align: left; font-size: 12px; text-transform: uppercase; color: #888; font-family:'Barlow',sans-serif;">Vendedor</th>
+                                <th style="padding: 10px; text-align: left; font-size: 12px; text-transform: uppercase; color: #888; font-family:'Barlow',sans-serif;">Total</th>
+                                <th style="padding: 10px; text-align: left; font-size: 12px; text-transform: uppercase; color: #888; font-family:'Barlow',sans-serif;">Pagamento</th>
+                                <th style="padding: 10px; text-align: left; font-size: 12px; text-transform: uppercase; color: #888; font-family:'Barlow',sans-serif;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${salesRows}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function toggleDayGroup(id) {
+    const el = document.getElementById(id);
+    const arrow = document.getElementById(`${id}-arrow`);
+    if (el) {
+        if (el.style.display === 'none') {
+            el.style.display = 'block';
+            if (arrow) arrow.innerText = '▲';
+        } else {
+            el.style.display = 'none';
+            if (arrow) arrow.innerText = '▼';
+        }
+    }
 }
 
 function verDetalhesVenda(idx) {
@@ -993,4 +1072,90 @@ function criarConta() {
 
     usuarios[user] = pass;
     salvarUsuarios(usuarios);
-    okEl.s
+    okEl.style.display = 'block';
+    document.getElementById('criar-user').value = '';
+    document.getElementById('criar-pass').value = '';
+    document.getElementById('criar-pass2').value = '';
+    setTimeout(() => mostrarTela('tela-login'), 1500);
+}
+
+function recuperarSenha() {
+    const user = document.getElementById('rec-user').value.trim().toLowerCase();
+    const pass = document.getElementById('rec-pass').value;
+    const pass2 = document.getElementById('rec-pass2').value;
+    const errEl = document.getElementById('rec-error');
+    const okEl = document.getElementById('rec-ok');
+    errEl.style.display = 'none'; okEl.style.display = 'none';
+
+    const usuarios = getUsuarios();
+    if(!usuarios[user]) { errEl.innerText='❌ Usuário não encontrado'; errEl.style.display='block'; return; }
+    if(!pass || pass.length < 4) { errEl.innerText='❌ Senha deve ter ao menos 4 caracteres'; errEl.style.display='block'; return; }
+    if(pass !== pass2) { errEl.innerText='❌ As senhas não coincidem'; errEl.style.display='block'; return; }
+
+    usuarios[user] = pass;
+    salvarUsuarios(usuarios);
+    okEl.style.display = 'block';
+    document.getElementById('rec-pass').value = '';
+    document.getElementById('rec-pass2').value = '';
+    setTimeout(() => mostrarTela('tela-login'), 1500);
+}
+
+// Auto-hide search results when search input is empty and preload counters safely
+window.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const resultsEl = document.getElementById('search-results');
+            if (resultsEl && !e.target.value.trim()) {
+                resultsEl.style.display = 'none';
+            }
+        });
+    }
+
+    if (typeof inventory !== 'undefined' && inventory) {
+        const totalItensInit = inventory.length;
+        const elEstoqueInit = document.getElementById('total-itens-estoque');
+        if (elEstoqueInit) elEstoqueInit.innerText = totalItensInit;
+    }
+});
+
+// ===== PWA — INSTALAR APP (Sidebar Integration) =====
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    const btn = document.getElementById('side-install-btn');
+    if (btn) btn.style.display = 'block';
+});
+
+window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    const btn = document.getElementById('side-install-btn');
+    if (btn) btn.style.display = 'none';
+});
+
+async function instalarApp() {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        if (outcome === 'accepted') {
+            const btn = document.getElementById('side-install-btn');
+            if (btn) btn.style.display = 'none';
+        }
+    }
+}
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('Service Worker registrado com sucesso!', reg.scope))
+            .catch(err => console.error('Erro ao registrar o Service Worker:', err));
+    });
+}
+</script>
+</body>
+</html>
