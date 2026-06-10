@@ -806,13 +806,18 @@ function finish(method) {
         const valorPagoInput = prompt(`Total da Venda: R$ ${total.toFixed(2)}\nDigite o valor pago pelo cliente:`);
         if (valorPagoInput === null) return; // Se cancelar o prompt, aborta a finalização
         const valorPago = parseFloat(valorPagoInput.replace(',', '.')) || 0;
-        if (valorPago < total) {
+        
+        // Compare using values rounded to 2 decimal places to bypass JavaScript float precision issues
+        const totalArredondado = parseFloat(total.toFixed(2));
+        const valorPagoArredondado = parseFloat(valorPago.toFixed(2));
+        
+        if (valorPagoArredondado < totalArredondado) {
             alert("Valor pago é insuficiente!");
             return;
         }
-        const troco = valorPago - total;
+        const troco = Math.max(0, parseFloat((valorPagoArredondado - totalArredondado).toFixed(2)));
         alert(`Troco: R$ ${troco.toFixed(2)}`);
-        trocoText = `<br>RECEBIDO: R$ ${valorPago.toFixed(2)}<br>TROCO: R$ ${troco.toFixed(2)}`;
+        trocoText = `<br>RECEBIDO: R$ ${valorPagoArredondado.toFixed(2)}<br>TROCO: R$ ${troco.toFixed(2)}`;
     }
 
     cart.forEach(item => {
