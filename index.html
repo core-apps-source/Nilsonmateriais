@@ -110,7 +110,8 @@
         .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
 
         /* RELATÓRIOS */
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+        @media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
         .stat-card { padding: 15px; border-radius: 8px; text-align: center; color: white; }
         .stat-card span { font-size: 12px; opacity: 0.85; display: block; }
         .stat-card strong { font-size: 20px; font-family: 'Barlow Condensed', sans-serif; }
@@ -389,15 +390,20 @@
         <!-- ABA RELATÓRIOS -->
         <div id="relatorios" class="tab-content">
             <div class="stats-grid">
-                <div class="stat-card" style="background:var(--success)"><span>Hoje</span><strong id="stat-hoje">R$ 0,00</strong></div>
-                <div class="stat-card" style="background:var(--info)"><span>Este Mês</span><strong id="stat-mes">R$ 0,00</strong></div>
+                <div class="stat-card" style="background:var(--success)"><span id="stat-hoje-label">Hoje</span><strong id="stat-hoje">R$ 0,00</strong></div>
+                <div class="stat-card" style="background:var(--info)"><span id="stat-mes-label">Este Mês</span><strong id="stat-mes">R$ 0,00</strong></div>
+                <div class="stat-card" style="background:var(--purple)"><span id="stat-qtd-label">Vendas no Mês</span><strong id="stat-qtd">0</strong></div>
                 <div class="stat-card" style="background:var(--secondary)"><span>Abertura Caixa</span><strong id="stat-abertura">R$ 0,00</strong></div>
             </div>
-            <div style="display:flex; gap:10px; margin-bottom:15px">
-                <select id="filter-seller" onchange="renderReports()" style="flex:1; padding:8px; border:2px solid #eee; border-radius:6px; font-family:'Barlow',sans-serif">
+            <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap; align-items:flex-end">
+                <div style="flex:1; min-width:150px">
+                    <label style="margin-bottom:4px; font-size:11px; text-transform:uppercase; letter-spacing:0.5px">📅 Período</label>
+                    <select id="filter-month" onchange="renderReports()" style="width:100%; padding:8px; border:2px solid #eee; border-radius:6px; font-family:'Barlow',sans-serif"></select>
+                </div>
+                <select id="filter-seller" onchange="renderReports()" style="flex:1; min-width:150px; padding:8px; border:2px solid #eee; border-radius:6px; font-family:'Barlow',sans-serif">
                     <option value="">Todos os Vendedores</option>
                 </select>
-                <select id="filter-method" onchange="renderReports()" style="flex:1; padding:8px; border:2px solid #eee; border-radius:6px; font-family:'Barlow',sans-serif">
+                <select id="filter-method" onchange="renderReports()" style="flex:1; min-width:150px; padding:8px; border:2px solid #eee; border-radius:6px; font-family:'Barlow',sans-serif">
                     <option value="">Todas as Formas</option>
                     <option>Crédito</option><option>Débito</option><option>PIX</option><option>Dinheiro</option>
                 </select>
@@ -460,6 +466,110 @@ let caixaAberto = false;
 let caixaAbertura = { valor: 0, hora: null };
 let inventorySortAsc = true;
 
+// ===== DATAS / MÊS =====
+function getMesKey(date) {
+    const d = date instanceof Date ? date : new Date(date);
+    return d.toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' });
+}
+
+function getMesInputValue(date) {
+    const d = date instanceof Date ? date : new Date(date);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function mesInputParaKey(val) {
+    if (!val) return getMesKey(new Date());
+    const [y, m] = val.split('-');
+    return `${m}/${y}`;
+}
+
+function formatMesLabel(mesKey) {
+    const [m, y] = mesKey.split('/');
+    const nomes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    return `${nomes[parseInt(m, 10) - 1]}/${y}`;
+}
+
+function saleNoMes(sale, mesKey) {
+    return getMesKey(new Date(sale.date)) === mesKey;
+}
+
+function salvarCaixa() {
+    localStorage.setItem('nilson_pro_caixa', JSON.stringify({
+        aberto: caixaAberto,
+        valor: caixaAbertura.valor,
+        hora: caixaAbertura.hora ? caixaAbertura.hora.toISOString() : null,
+        mes: getMesKey(new Date()),
+        seller: currentSeller
+    }));
+}
+
+function carregarCaixa() {
+    const saved = JSON.parse(localStorage.getItem('nilson_pro_caixa'));
+    if (!saved) return;
+
+    const mesAtual = getMesKey(new Date());
+    if (saved.aberto && saved.mes && saved.mes !== mesAtual) {
+        fecharCaixaPorViradaMes();
+        return;
+    }
+
+    if (saved.aberto) {
+        caixaAberto = true;
+        caixaAbertura = {
+            valor: saved.valor || 0,
+            hora: saved.hora ? new Date(saved.hora) : null
+        };
+        currentSeller = saved.seller || 'GERAL';
+        document.getElementById('vendedor-log').innerText = 'Vendedor: ' + currentSeller;
+        document.getElementById('caixa-hora').innerText = 'Aberto às ' + (caixaAbertura.hora ? caixaAbertura.hora.toLocaleTimeString('pt-BR') : '--');
+        document.getElementById('caixa-overlay').style.display = 'none';
+    }
+}
+
+function fecharCaixaPorViradaMes() {
+    localStorage.removeItem('nilson_pro_caixa');
+    caixaAberto = false;
+    caixaAbertura = { valor: 0, hora: null };
+    currentSeller = '';
+    cart = [];
+    renderCart();
+    document.getElementById('caixa-overlay').style.display = 'flex';
+    alert('📅 Novo mês detectado.\n\nO caixa do mês anterior foi fechado automaticamente. Abra o caixa para continuar vendendo.');
+}
+
+function verificarViradaMes() {
+    const saved = JSON.parse(localStorage.getItem('nilson_pro_caixa'));
+    if (!saved || !saved.aberto) return;
+    if (saved.mes !== getMesKey(new Date())) fecharCaixaPorViradaMes();
+}
+
+function popularSeletorMes() {
+    const el = document.getElementById('filter-month');
+    if (!el) return;
+
+    const meses = new Set(sales.map(s => getMesKey(new Date(s.date))));
+    meses.add(getMesKey(new Date()));
+
+    const atual = el.value || getMesInputValue(new Date());
+    const opcoes = [...meses].sort((a, b) => {
+        const [ma, ya] = a.split('/').reverse();
+        const [mb, yb] = b.split('/').reverse();
+        return (yb + mb).localeCompare(ya + ma);
+    });
+
+    el.innerHTML = opcoes.map(m => {
+        const [mm, yyyy] = m.split('/');
+        const inputVal = `${yyyy}-${mm}`;
+        return `<option value="${inputVal}">${formatMesLabel(m)}</option>`;
+    }).join('');
+
+    if ([...el.options].some(o => o.value === atual)) {
+        el.value = atual;
+    } else {
+        el.value = getMesInputValue(new Date());
+    }
+}
+
 // ===== CAIXA =====
 function abrirCaixa() {
     const seller = document.getElementById('open-seller').value.trim();
@@ -469,8 +579,9 @@ function abrirCaixa() {
     caixaAbertura = { valor, hora: new Date() };
 
     document.getElementById('vendedor-log').innerText = "Vendedor: " + currentSeller;
-    document.getElementById('caixa-hora').innerText = "Aberto às " + caixaAbertura.hora.toLocaleTimeString();
+    document.getElementById('caixa-hora').innerText = "Aberto às " + caixaAbertura.hora.toLocaleTimeString('pt-BR');
     document.getElementById('caixa-overlay').style.display = 'none';
+    salvarCaixa();
     renderInventory();
     updateNextId();
     const searchInput = document.getElementById('search-input');
@@ -478,8 +589,8 @@ function abrirCaixa() {
 }
 
 function pedirFecharCaixa() {
-    const hoje = new Date().toLocaleDateString();
-    const vHoje = sales.filter(s => new Date(s.date).toLocaleDateString() === hoje);
+    const hoje = new Date().toLocaleDateString('pt-BR');
+    const vHoje = sales.filter(s => new Date(s.date).toLocaleDateString('pt-BR') === hoje);
     const totalHoje = vHoje.reduce((a,b) => a + b.total, 0);
     const qtdVendas = vHoje.length;
     const saldoFinal = caixaAbertura.valor + totalHoje;
@@ -501,6 +612,9 @@ function confirmarFecharCaixa() {
     document.getElementById('open-seller').value = '';
     document.getElementById('open-value').value = '';
     caixaAberto = false;
+    caixaAbertura = { valor: 0, hora: null };
+    currentSeller = '';
+    localStorage.removeItem('nilson_pro_caixa');
     cart = [];
     renderCart();
     document.getElementById('caixa-overlay').style.display = 'flex';
@@ -851,27 +965,49 @@ function finish(method) {
 
 // ===== RELATÓRIOS =====
 function renderReports() {
-    const hoje = new Date().toLocaleDateString();
-    const mes = new Date().toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' });
+    popularSeletorMes();
+
+    const mesAtual = getMesKey(new Date());
+    const mesSelecionado = mesInputParaKey(document.getElementById('filter-month').value);
+    const mesAtualSelecionado = mesSelecionado === mesAtual;
+    const hoje = new Date().toLocaleDateString('pt-BR');
     const selFilter = document.getElementById('filter-seller').value;
     const metFilter = document.getElementById('filter-method').value;
 
-    const vHoje = sales.filter(s => new Date(s.date).toLocaleDateString() === hoje);
-    const vMes = sales.filter(s => new Date(s.date).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }) === mes);
+    const vMes = sales.filter(s => saleNoMes(s, mesSelecionado));
+    const vHoje = mesAtualSelecionado
+        ? vMes.filter(s => new Date(s.date).toLocaleDateString('pt-BR') === hoje)
+        : [];
 
-    document.getElementById('stat-hoje').innerText = "R$ " + vHoje.reduce((a,b) => a+b.total, 0).toFixed(2);
-    document.getElementById('stat-mes').innerText = "R$ " + vMes.reduce((a,b) => a+b.total, 0).toFixed(2);
-    document.getElementById('stat-abertura').innerText = "R$ " + caixaAbertura.valor.toFixed(2);
+    const totalMes = vMes.reduce((a, b) => a + b.total, 0);
+    const totalHoje = vHoje.reduce((a, b) => a + b.total, 0);
 
-    // Popular select de vendedores
-    const sellers = [...new Set(sales.map(s => s.seller))];
+    document.getElementById('stat-mes-label').innerText = mesAtualSelecionado ? 'Este Mês' : formatMesLabel(mesSelecionado);
+    document.getElementById('stat-mes').innerText = 'R$ ' + totalMes.toFixed(2);
+    document.getElementById('stat-qtd').innerText = String(vMes.length);
+    document.getElementById('stat-qtd-label').innerText = mesAtualSelecionado ? 'Vendas no Mês' : 'Vendas em ' + formatMesLabel(mesSelecionado);
+
+    if (mesAtualSelecionado) {
+        document.getElementById('stat-hoje-label').innerText = 'Hoje';
+        document.getElementById('stat-hoje').innerText = 'R$ ' + totalHoje.toFixed(2);
+    } else {
+        document.getElementById('stat-hoje-label').innerText = 'Dias com Venda';
+        document.getElementById('stat-hoje').innerText = String(new Set(vMes.map(s => new Date(s.date).toLocaleDateString('pt-BR'))).size);
+    }
+
+    document.getElementById('stat-abertura').innerText = mesAtualSelecionado && caixaAberto
+        ? 'R$ ' + caixaAbertura.valor.toFixed(2)
+        : '—';
+
+    // Popular select de vendedores (somente do mês selecionado)
+    const sellers = [...new Set(vMes.map(s => s.seller))];
     const selEl = document.getElementById('filter-seller');
     const curVal = selEl.value;
     selEl.innerHTML = '<option value="">Todos os Vendedores</option>' + sellers.map(s => `<option ${s === curVal ? 'selected' : ''}>${s}</option>`).join('');
 
     // Reverse array keeping track of original indices
     let indexedSales = sales.map((s, idx) => ({ ...s, originalIndex: idx }));
-    let filtered = [...indexedSales].reverse();
+    let filtered = indexedSales.filter(s => saleNoMes(s, mesSelecionado)).reverse();
     if(selFilter) filtered = filtered.filter(s => s.seller === selFilter);
     if(metFilter) filtered = filtered.filter(s => s.method === metFilter);
 
@@ -893,19 +1029,22 @@ function renderReports() {
     });
 
     if (sortedDays.length === 0) {
-        container.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;background:white;border-radius:8px;border:1px solid #eee;font-family:\'Barlow\',sans-serif;">Nenhuma venda encontrada</div>';
+        container.innerHTML = `<div style="text-align:center;color:#aaa;padding:20px;background:white;border-radius:8px;border:1px solid #eee;font-family:'Barlow',sans-serif;">Nenhuma venda em ${formatMesLabel(mesSelecionado)}</div>`;
         return;
     }
+
+    const diaAberto = mesAtualSelecionado
+        ? new Date().toLocaleDateString('pt-BR')
+        : sortedDays[0];
 
     container.innerHTML = sortedDays.map((day, idx) => {
         const daySales = groups[day];
         const dayTotal = daySales.reduce((sum, s) => sum + s.total, 0);
         const dayId = `day-group-${idx}`;
         
-        // Open the group for "Today" automatically, hide other days
-        const isToday = day === new Date().toLocaleDateString('pt-BR');
-        const displayStyle = isToday ? 'block' : 'none';
-        const arrow = isToday ? '▲' : '▼';
+        const aberto = day === diaAberto;
+        const displayStyle = aberto ? 'block' : 'none';
+        const arrow = aberto ? '▲' : '▼';
 
         const salesRows = daySales.map(s => {
             const timeStr = new Date(s.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -1113,6 +1252,12 @@ function recuperarSenha() {
 
 // Auto-hide search results when search input is empty and preload counters safely
 window.addEventListener('DOMContentLoaded', () => {
+    carregarCaixa();
+    setInterval(verificarViradaMes, 60000);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') verificarViradaMes();
+    });
+
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
@@ -1121,6 +1266,11 @@ window.addEventListener('DOMContentLoaded', () => {
                 resultsEl.style.display = 'none';
             }
         });
+    }
+
+    const filterMonth = document.getElementById('filter-month');
+    if (filterMonth && !filterMonth.value) {
+        filterMonth.value = getMesInputValue(new Date());
     }
 
     if (typeof inventory !== 'undefined' && inventory) {
