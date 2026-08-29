@@ -167,6 +167,36 @@
         .login-screen.ativo { display: block; }
         .btn-voltar { background: none; border: none; color: #aaa; font-size: 13px; cursor: pointer; font-family: 'Barlow', sans-serif; margin-top: 10px; text-decoration: underline; }
 
+        /* SIMULADOR PARCELAS PAGBANK */
+        .tabs { flex-wrap: wrap; }
+        .sim-layout { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; align-items: start; }
+        @media (max-width: 980px) { .sim-layout { grid-template-columns: 1fr; } }
+        .sim-opts { background: #f8f9fa; border: 2px solid #e8e8e8; border-radius: 10px; padding: 16px; }
+        .sim-opts h3 { margin: 0 0 12px; font-family: 'Barlow Condensed', sans-serif; font-size: 1.25em; color: var(--primary); }
+        .sim-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+        .sim-pill { border: 2px solid #ddd; background: white; padding: 7px 12px; border-radius: 20px; font-weight: 700; font-size: 12px; cursor: pointer; font-family: 'Barlow', sans-serif; color: #555; }
+        .sim-pill.active { background: var(--secondary); color: white; border-color: var(--secondary); }
+        .sim-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .pos-sim { background: linear-gradient(180deg, #06382e 0%, #07261f 100%); color: #d8f8e8; border-radius: 12px; padding: 16px 14px 12px; box-shadow: 0 8px 24px rgba(6,56,46,0.35); }
+        .pos-sim-head { text-align: center; border-bottom: 1px dashed rgba(216,248,232,0.25); padding-bottom: 10px; margin-bottom: 8px; }
+        .pos-sim-brand { font-size: 12px; letter-spacing: 2px; opacity: 0.7; font-weight: 700; }
+        .pos-sim-valor { font-family: 'Barlow Condensed', sans-serif; font-size: 2.2em; font-weight: 900; color: #fff; line-height: 1.1; }
+        .pos-sim-modo { font-size: 12px; opacity: 0.75; margin-top: 4px; }
+        .pos-sim-row { display: grid; grid-template-columns: 64px 1fr auto; gap: 8px; align-items: center; padding: 8px 10px; border-bottom: 1px dashed rgba(216,248,232,0.12); cursor: pointer; border-radius: 6px; }
+        .pos-sim-row:hover { background: rgba(0,168,104,0.18); }
+        .pos-sim-row.sel { background: var(--secondary); color: #fff; }
+        .pos-sim-row.off { opacity: 0.35; cursor: not-allowed; }
+        .pos-sim-n { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 20px; }
+        .pos-sim-parc { font-size: 18px; font-weight: 700; text-align: right; font-family: 'Barlow Condensed', sans-serif; }
+        .pos-sim-sub { font-size: 11px; opacity: 0.75; }
+        .pos-sim-foot { font-size: 11px; opacity: 0.55; text-align: center; margin-top: 10px; }
+        #sim-pos-lista { max-height: 52vh; overflow-y: auto; }
+        .sim-resumo { background: #fff7f0; border: 2px solid var(--secondary); border-radius: 8px; padding: 12px 14px; margin-top: 12px; }
+        .sim-resumo strong { color: var(--secondary); font-size: 18px; font-family: 'Barlow Condensed', sans-serif; }
+        .taxas-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        @media (max-width: 700px) { .taxas-grid { grid-template-columns: repeat(3, 1fr); } .sim-grid-2 { grid-template-columns: 1fr; } }
+        details.sim-taxas { margin-top: 12px; font-size: 13px; }
+        details.sim-taxas summary { cursor: pointer; font-weight: 700; color: #555; }
 
     </style>
 </head>
@@ -292,6 +322,7 @@
         <div class="tabs">
             <button class="tab-btn active" onclick="showTab('venda', this)">🛒 Venda</button>
             <button class="tab-btn" onclick="showTab('estoque', this)">📦 Estoque</button>
+            <button class="tab-btn" id="tab-btn-parcelas" onclick="showTab('parcelas', this)">💳 Parcelas</button>
             <button class="tab-btn" onclick="showTab('relatorios', this)">📊 Relatórios</button>
         </div>
 
@@ -305,6 +336,71 @@
                 <tbody id="cart-body"></tbody>
             </table>
             <div style="text-align:right; margin-top:10px; color:#999; font-size:13px" id="cart-count"></div>
+        </div>
+
+        <!-- ABA PARCELAS PAGBANK -->
+        <div id="parcelas" class="tab-content">
+            <div class="sim-layout">
+                <div>
+                    <div class="pos-sim" id="pos-sim-box">
+                        <div class="pos-sim-head">
+                            <div class="pos-sim-brand">PAGBANK · SIMULAR PARCELAS</div>
+                            <div class="pos-sim-valor">R$ <span id="sim-pos-valor">0,00</span></div>
+                            <div class="pos-sim-modo" id="sim-pos-modo">Juros no cliente · 3,49% a.m.</div>
+                        </div>
+                        <div id="sim-pos-lista">
+                            <div style="text-align:center; padding:28px 10px; opacity:0.6">Informe o valor da venda para simular</div>
+                        </div>
+                        <div class="pos-sim-foot">Parcela mínima R$ 5,00 · até 18x (Visa PagBank) · taxas ago/2026</div>
+                    </div>
+                    <div class="sim-resumo" id="sim-resumo" style="display:none"></div>
+                </div>
+                <div class="sim-opts">
+                    <h3>📊 Simulador de parcelas</h3>
+                    <p style="margin:0 0 12px; font-size:13px; color:#777; line-height:1.4">Igual à maquininha PagBank: veja 2x, 3x… até a quantidade que quiser, com os juros atuais.</p>
+                    <div class="sim-grid-2" style="margin-bottom:12px">
+                        <div>
+                            <label>Valor da venda (R$)</label>
+                            <input type="number" id="sim-valor" step="0.01" min="0" placeholder="0,00" oninput="simularParcelas()">
+                        </div>
+                        <div>
+                            <label>Parcelar em até</label>
+                            <input type="number" id="sim-max" min="2" max="18" value="12" oninput="simularParcelas()">
+                        </div>
+                    </div>
+                    <button class="btn-pay" style="background:var(--info); width:100%; margin-bottom:12px; font-size:13px" onclick="usarTotalVendaNoSimulador()">🛒 USAR TOTAL DA VENDA</button>
+                    <label>Quem paga o juros</label>
+                    <div class="sim-pills" id="sim-modos">
+                        <button class="sim-pill active" data-modo="cliente" onclick="setSimModo('cliente')">Juros no cliente</button>
+                        <button class="sim-pill" data-modo="taxa" onclick="setSimModo('taxa')">Repassar taxa PagBank</button>
+                        <button class="sim-pill" data-modo="vendedor" onclick="setSimModo('vendedor')">Sem juros (loja absorve)</button>
+                    </div>
+                    <div class="sim-grid-2" style="margin-bottom:10px">
+                        <div>
+                            <label>Plano da maquininha</label>
+                            <select id="sim-plano" onchange="onSimPlanoChange()" style="width:100%; padding:10px 12px; border:2px solid #e0e0e0; border-radius:6px; font-family:'Barlow',sans-serif; font-size:14px"></select>
+                        </div>
+                        <div>
+                            <label>Bandeira</label>
+                            <select id="sim-bandeira" onchange="onSimBandeiraChange()" style="width:100%; padding:10px 12px; border:2px solid #e0e0e0; border-radius:6px; font-family:'Barlow',sans-serif; font-size:14px">
+                                <option value="visa">Visa / Mastercard</option>
+                                <option value="elo">Elo e demais</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="sim-juros-wrap">
+                        <label>Juros do cliente (% a.m.)</label>
+                        <input type="number" id="sim-juros" step="0.01" min="0" value="3.49" oninput="simularParcelas()">
+                    </div>
+                    <p id="sim-ajuda" style="font-size:12px; color:#888; margin:10px 0 0; line-height:1.45"></p>
+                    <details class="sim-taxas">
+                        <summary>⚙️ Ajustar taxas da maquininha (MDR)</summary>
+                        <p style="color:#888; font-size:12px; margin:8px 0">Se as taxas do seu PagBank forem diferentes, edite abaixo. Os valores padrão são as taxas oficiais de ago/2026.</p>
+                        <div class="taxas-grid" id="sim-taxas-grid"></div>
+                        <button class="btn-pay" style="background:#34495e; width:100%; margin-top:10px; font-size:13px" onclick="salvarTaxasCustom()">💾 SALVAR TAXAS DESTE PLANO</button>
+                    </details>
+                </div>
+            </div>
         </div>
 
         <!-- ABA ESTOQUE -->
@@ -439,6 +535,7 @@
             <button class="btn-pay" style="background:#16a085" onclick="finish('PIX')">📱 PIX</button>
             <button class="btn-pay" style="background:#c0a010; color:white" onclick="finish('Dinheiro')">💵 DINHEIRO</button>
         </div>
+        <button class="btn-pay" style="background:var(--warn); width:100%; margin-bottom:8px" onclick="abrirSimuladorParcelas()">📊 SIMULAR PARCELAS</button>
         <button id="side-install-btn" class="btn-pay" style="display:none; background:var(--secondary); width:100%; margin-bottom:8px;" onclick="instalarApp()">📲 INSTALAR PDV</button>
         <button class="btn-pay" style="background:var(--danger); width:100%" onclick="cancelarVenda()">🗑️ CANCELAR VENDA</button>
     </div>
@@ -628,6 +725,7 @@ function showTab(id, btn) {
     if(btn) btn.classList.add('active');
     if(id === 'relatorios') renderReports();
     if(id === 'estoque') renderInventory();
+    if(id === 'parcelas') simularParcelas();
     if(id === 'venda') {
         const searchInput = document.getElementById('search-input');
         if (searchInput) searchInput.focus();
@@ -908,6 +1006,305 @@ function cancelarVenda() {
     renderCart();
     const searchInput = document.getElementById('search-input');
     if (searchInput) searchInput.focus();
+}
+
+// ===== SIMULADOR PARCELAS PAGBANK =====
+const PAGBANK_PARCELA_MIN = 5;
+const PAGBANK_JUROS_AM = 3.49;
+const PAGBANK_PLANOS = {
+    promo: {
+        nome: 'Promocional (30 dias / até R$ 5 mil)',
+        visa: {1:0.58,2:3.98,3:3.98,4:4.98,5:5.98,6:6.98,7:7.98,8:7.98,9:7.98,10:7.98,11:7.98,12:7.98},
+        elo:  {1:4.34,2:7.02,3:7.02,4:8.02,5:9.02,6:10.02,7:10.72,8:10.72,9:10.72,10:10.72,11:10.72,12:10.72}
+    },
+    ate2k: {
+        nome: 'Pós-promo · até R$ 2.000/mês',
+        visa: {1:4.99,2:9.91,3:11.29,4:12.64,5:13.97,6:15.27,7:16.55,8:17.81,9:19.04,10:20.24,11:21.43,12:22.59},
+        elo:  {1:6.17,2:11.10,3:12.48,4:13.83,5:15.16,6:16.46,7:17.74,8:19.00,9:20.23,10:21.43,11:22.62,12:23.78}
+    },
+    de2a5: {
+        nome: 'Pós-promo · R$ 2 mil a R$ 5 mil/mês',
+        visa: {1:3.37,2:6.71,3:8.47,4:9.47,5:10.47,6:11.47,7:12.47,8:13.27,9:13.27,10:13.27,11:13.27,12:13.27},
+        elo:  {1:4.68,2:8.25,3:10.01,4:11.01,5:12.01,6:13.01,7:14.08,8:14.88,9:14.88,10:14.88,11:14.88,12:14.88}
+    },
+    de5a10: {
+        nome: 'Pós-promo · R$ 5 mil a R$ 10 mil/mês',
+        visa: {1:3.32,2:6.71,3:8.42,4:9.42,5:10.42,6:11.42,7:12.43,8:12.63,9:12.64,10:12.66,11:12.67,12:12.67},
+        elo:  {1:4.68,2:8.28,3:9.99,4:10.99,5:11.99,6:12.99,7:14.04,8:14.24,9:14.25,10:14.27,11:14.28,12:14.28}
+    },
+    de10a20: {
+        nome: 'Pós-promo · R$ 10 mil a R$ 20 mil/mês',
+        visa: {1:3.08,2:6.63,3:7.47,4:8.40,5:9.27,6:11.30,7:12.35,8:12.53,9:12.54,10:12.55,11:12.56,12:12.57},
+        elo:  {1:4.68,2:9.52,3:10.36,4:11.29,5:12.16,6:14.19,7:15.55,8:15.73,9:15.74,10:15.75,11:15.76,12:15.77}
+    },
+    de20a50: {
+        nome: 'Pós-promo · R$ 20 mil a R$ 50 mil/mês',
+        visa: {1:3.07,2:5.37,3:6.10,4:6.84,5:7.56,6:8.26,7:8.98,8:9.68,9:10.37,10:11.04,11:11.73,12:12.38},
+        elo:  {1:4.68,2:8.26,3:8.99,4:9.73,5:10.45,6:11.15,7:12.18,8:12.88,9:13.57,10:14.24,11:14.93,12:15.58}
+    },
+    acima50: {
+        nome: 'Pós-promo · acima de R$ 50 mil/mês',
+        visa: {1:2.92,2:5.35,3:6.08,4:6.82,5:7.54,6:8.24,7:8.96,8:9.66,9:10.35,10:11.02,11:11.71,12:12.36},
+        elo:  {1:4.68,2:8.24,3:8.97,4:9.71,5:10.43,6:11.13,7:12.16,8:12.86,9:13.55,10:14.22,11:14.91,12:15.56}
+    }
+};
+
+let simModo = 'cliente';
+let simLinhaSel = 0;
+
+function roundMoney(n) {
+    return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+}
+
+function fmtBRL(n) {
+    return Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function calcPMT(pv, i, n) {
+    if (n <= 1 || i <= 0) return pv / Math.max(n, 1);
+    const f = Math.pow(1 + i, n);
+    return pv * (i * f) / (f - 1);
+}
+
+function getSimConfig() {
+    try {
+        return JSON.parse(localStorage.getItem('nilson_pro_parcelas') || '{}');
+    } catch {
+        return {};
+    }
+}
+
+function saveSimConfig(extra) {
+    const cur = getSimConfig();
+    localStorage.setItem('nilson_pro_parcelas', JSON.stringify({ ...cur, ...extra }));
+}
+
+function getTabelaMdr() {
+    const planoId = document.getElementById('sim-plano').value || 'promo';
+    const bandeira = document.getElementById('sim-bandeira').value || 'visa';
+    const saved = getSimConfig();
+    if (saved.taxasCustom && saved.taxasCustom[planoId] && saved.taxasCustom[planoId][bandeira]) {
+        return saved.taxasCustom[planoId][bandeira];
+    }
+    const plano = PAGBANK_PLANOS[planoId] || PAGBANK_PLANOS.promo;
+    return { ...(plano[bandeira] || plano.visa) };
+}
+
+function getTaxaMdr(n) {
+    const tabela = getTabelaMdr();
+    const key = String(Math.min(Math.max(n, 1), 12));
+    return Number(tabela[key] ?? tabela[n] ?? tabela[12] ?? 0);
+}
+
+function popularPlanosSim() {
+    const el = document.getElementById('sim-plano');
+    if (!el || el.options.length) return;
+    const saved = getSimConfig();
+    el.innerHTML = Object.keys(PAGBANK_PLANOS).map(id =>
+        `<option value="${id}" ${saved.plano === id ? 'selected' : ''}>${PAGBANK_PLANOS[id].nome}</option>`
+    ).join('');
+    if (saved.bandeira) document.getElementById('sim-bandeira').value = saved.bandeira;
+    if (saved.jurosAm != null) document.getElementById('sim-juros').value = saved.jurosAm;
+    if (saved.maxParcelas) document.getElementById('sim-max').value = saved.maxParcelas;
+    if (saved.modo) setSimModo(saved.modo, true);
+    renderTaxasGrid();
+}
+
+function renderTaxasGrid() {
+    const grid = document.getElementById('sim-taxas-grid');
+    if (!grid) return;
+    const tabela = getTabelaMdr();
+    grid.innerHTML = Array.from({ length: 12 }, (_, i) => i + 1).map(n => `
+        <div>
+            <label style="font-size:10px">${n}x (%)</label>
+            <input type="number" class="sim-taxa-n" data-n="${n}" step="0.01" min="0" value="${tabela[n] ?? ''}" oninput="marcarTaxasEditadas()">
+        </div>
+    `).join('');
+}
+
+function marcarTaxasEditadas() {
+    // edição local até salvar
+}
+
+function salvarTaxasCustom() {
+    const planoId = document.getElementById('sim-plano').value || 'promo';
+    const bandeira = document.getElementById('sim-bandeira').value || 'visa';
+    const tabela = {};
+    document.querySelectorAll('.sim-taxa-n').forEach(inp => {
+        tabela[inp.dataset.n] = parseFloat(inp.value) || 0;
+    });
+    const saved = getSimConfig();
+    const taxasCustom = saved.taxasCustom || {};
+    taxasCustom[planoId] = taxasCustom[planoId] || {};
+    taxasCustom[planoId][bandeira] = tabela;
+    saveSimConfig({ taxasCustom });
+    simularParcelas();
+    alert('Taxas salvas neste aparelho. A simulação já usa os novos valores.');
+}
+
+function setSimModo(modo, silent) {
+    simModo = modo;
+    document.querySelectorAll('#sim-modos .sim-pill').forEach(b => {
+        b.classList.toggle('active', b.dataset.modo === modo);
+    });
+    const wrapJuros = document.getElementById('sim-juros-wrap');
+    if (wrapJuros) wrapJuros.style.display = modo === 'cliente' ? 'block' : 'none';
+    if (!silent) {
+        saveSimConfig({ modo });
+        simularParcelas();
+    }
+}
+
+function onSimPlanoChange() {
+    saveSimConfig({ plano: document.getElementById('sim-plano').value });
+    renderTaxasGrid();
+    simularParcelas();
+}
+
+function onSimBandeiraChange() {
+    saveSimConfig({ bandeira: document.getElementById('sim-bandeira').value });
+    renderTaxasGrid();
+    simularParcelas();
+}
+
+function cartTotal() {
+    return cart.reduce((a, item) => a + (item.sale * item.qty), 0);
+}
+
+function usarTotalVendaNoSimulador() {
+    const total = cartTotal();
+    if (total <= 0) return alert('Adicione itens na venda para usar o total.');
+    document.getElementById('sim-valor').value = total.toFixed(2);
+    simularParcelas();
+}
+
+function abrirSimuladorParcelas() {
+    const total = cartTotal();
+    const input = document.getElementById('sim-valor');
+    if (total > 0 && input) input.value = total.toFixed(2);
+    showTab('parcelas', document.getElementById('tab-btn-parcelas'));
+}
+
+function calcLinhaParcela(valor, n, modo, jurosAm) {
+    const mdrN = getTaxaMdr(n);
+
+    if (modo === 'cliente') {
+        if (n === 1) {
+            return {
+                n, parcela: roundMoney(valor), total: roundMoney(valor), juros: 0,
+                recebido: roundMoney(valor), taxa: 0, livre: true
+            };
+        }
+        const pmt = calcPMT(valor, jurosAm / 100, n);
+        const parcela = roundMoney(pmt);
+        const total = roundMoney(parcela * n);
+        return {
+            n, parcela, total, juros: roundMoney(total - valor),
+            recebido: roundMoney(valor),
+            taxa: jurosAm, livre: false
+        };
+    }
+
+    if (modo === 'taxa') {
+        const mdr = mdrN / 100;
+        const bruto = mdr >= 1 ? valor : valor / (1 - mdr);
+        const parcela = roundMoney(bruto / n);
+        const total = n === 1 ? roundMoney(bruto) : roundMoney(parcela * n);
+        const recebido = roundMoney(total * (1 - mdr));
+        return {
+            n, parcela: n === 1 ? total : parcela, total,
+            juros: roundMoney(total - valor),
+            recebido, taxa: mdrN, livre: false
+        };
+    }
+
+    const parcela = roundMoney(valor / n);
+    return {
+        n, parcela, total: roundMoney(valor), juros: 0,
+        recebido: roundMoney(valor * (1 - mdrN / 100)), taxa: mdrN, livre: true
+    };
+}
+
+function simularParcelas() {
+    popularPlanosSim();
+    const valorEl = document.getElementById('sim-valor');
+    const maxEl = document.getElementById('sim-max');
+    const jurosEl = document.getElementById('sim-juros');
+    if (!valorEl) return;
+
+    const valor = parseFloat(String(valorEl.value).replace(',', '.')) || 0;
+    let maxN = parseInt(maxEl.value, 10);
+    if (!maxN || maxN < 1) maxN = 12;
+    if (maxN > 18) { maxN = 18; maxEl.value = 18; }
+    const jurosAm = parseFloat(String(jurosEl.value).replace(',', '.'));
+    const juros = Number.isFinite(jurosAm) ? jurosAm : PAGBANK_JUROS_AM;
+
+    saveSimConfig({
+        jurosAm: juros,
+        maxParcelas: maxN,
+        bandeira: document.getElementById('sim-bandeira').value,
+        plano: document.getElementById('sim-plano').value
+    });
+
+    document.getElementById('sim-pos-valor').innerText = fmtBRL(valor);
+
+    const ajuda = {
+        cliente: 'Como na maquininha, no parcelamento comprador: juros compostos de ' + juros.toLocaleString('pt-BR') + '% ao mês (Tabela Price). O cliente paga o juros e você recebe o valor da venda.',
+        taxa: 'A taxa da maquininha vai para o cliente. O valor cobrado sobe e o líquido é o que cai na sua conta depois do PagBank.',
+        vendedor: 'Cliente paga o valor original dividido. A loja absorve a taxa PagBank do número de parcelas. O líquido é o que cai na conta.'
+    };
+    document.getElementById('sim-ajuda').innerText = ajuda[simModo] || '';
+    document.getElementById('sim-pos-modo').innerText = simModo === 'cliente'
+        ? `Juros no cliente · ${juros.toLocaleString('pt-BR')}% a.m.`
+        : (simModo === 'taxa' ? 'Repassar taxa da maquininha' : 'Sem juros · loja absorve a taxa');
+
+    const lista = document.getElementById('sim-pos-lista');
+    const resumo = document.getElementById('sim-resumo');
+    if (valor <= 0) {
+        lista.innerHTML = '<div style="text-align:center; padding:28px 10px; opacity:0.6">Informe o valor da venda para simular</div>';
+        resumo.style.display = 'none';
+        return;
+    }
+
+    const linhas = [];
+    for (let n = 1; n <= maxN; n++) linhas.push(calcLinhaParcela(valor, n, simModo, juros));
+    if (simLinhaSel > maxN) simLinhaSel = 0;
+    if (!simLinhaSel && simModo !== 'vendedor') simLinhaSel = Math.min(2, maxN);
+
+    lista.innerHTML = linhas.map(l => {
+        const off = l.parcela < PAGBANK_PARCELA_MIN;
+        const sel = !off && l.n === simLinhaSel;
+        const tag = l.n === 1 ? 'à vista' : (l.livre ? 'sem juros' : 'com juros');
+        const extra = off ? '<div class="pos-sim-sub">abaixo de R$ 5,00</div>' : `<div class="pos-sim-sub">${tag} · total R$ ${fmtBRL(l.total)}</div>`;
+        return `<div class="pos-sim-row${sel ? ' sel' : ''}${off ? ' off' : ''}" ${off ? '' : `onclick="selecionarParcela(${l.n})"`}>
+            <div class="pos-sim-n">${l.n}x</div>
+            <div>${extra}</div>
+            <div class="pos-sim-parc">R$ ${fmtBRL(l.parcela)}</div>
+        </div>`;
+    }).join('');
+
+    const escolhida = linhas.find(l => l.n === simLinhaSel && l.parcela >= PAGBANK_PARCELA_MIN) || linhas[0];
+    if (!escolhida) { resumo.style.display = 'none'; return; }
+    resumo.style.display = 'block';
+    const mostraLiquido = simModo === 'taxa' || simModo === 'vendedor';
+    const labelRecebe = mostraLiquido ? 'Você recebe (líquido)' : 'Você recebe (valor da venda)';
+    const taxaPagBank = mostraLiquido
+        ? ` · Taxa PagBank ${escolhida.taxa.toLocaleString('pt-BR')}%`
+        : '';
+    resumo.innerHTML = `
+        <div style="font-size:12px; text-transform:uppercase; letter-spacing:0.5px; color:#888; font-weight:700; margin-bottom:4px">Fale com o cliente</div>
+        <strong>${escolhida.n === 1 ? 'À vista R$ ' + fmtBRL(escolhida.total) : escolhida.n + 'x de R$ ' + fmtBRL(escolhida.parcela)}</strong>
+        <div style="margin-top:6px; font-size:13px; color:#555; line-height:1.6">
+            Total cobrado: <b>R$ ${fmtBRL(escolhida.total)}</b>
+            ${escolhida.juros > 0 ? ' · Taxa/juros: <b>R$ ' + fmtBRL(escolhida.juros) + '</b>' : ''}<br>
+            ${labelRecebe}: <b>R$ ${fmtBRL(escolhida.recebido)}</b>${taxaPagBank}
+        </div>
+    `;
+}
+
+function selecionarParcela(n) {
+    simLinhaSel = n;
+    simularParcelas();
 }
 
 // ===== FINALIZAR VENDA =====
@@ -1253,6 +1650,7 @@ function recuperarSenha() {
 // Auto-hide search results when search input is empty and preload counters safely
 window.addEventListener('DOMContentLoaded', () => {
     carregarCaixa();
+    popularPlanosSim();
     setInterval(verificarViradaMes, 60000);
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') verificarViradaMes();
