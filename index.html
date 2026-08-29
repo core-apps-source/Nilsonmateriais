@@ -197,6 +197,17 @@
         @media (max-width: 700px) { .taxas-grid { grid-template-columns: repeat(3, 1fr); } .sim-grid-2 { grid-template-columns: 1fr; } }
         details.sim-taxas { margin-top: 12px; font-size: 13px; }
         details.sim-taxas summary { cursor: pointer; font-weight: 700; color: #555; }
+        .side-parcelas { display: none; background: rgba(0,0,0,0.28); border: 1px solid rgba(211,84,0,0.5); border-radius: 8px; margin: 0 0 8px; overflow: hidden; }
+        .side-parcelas-head { font-size: 11px; font-weight: 700; letter-spacing: 0.4px; padding: 7px 10px; background: rgba(211,84,0,0.28); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .side-parcelas-head span { opacity: 0.8; font-weight: 600; }
+        #side-parcelas-lista { max-height: 168px; overflow-y: auto; }
+        .side-parcela-row { display: grid; grid-template-columns: 42px 1fr auto; gap: 6px; align-items: center; padding: 5px 10px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer; }
+        .side-parcela-row:hover { background: rgba(255,255,255,0.06); }
+        .side-parcela-row.sel { background: var(--secondary); }
+        .side-parcela-n { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 15px; }
+        .side-parcela-juros { font-size: 11px; color: #f0c078; }
+        .side-parcela-row.sel .side-parcela-juros { color: #ffe8c4; }
+        .side-parcela-row.off { opacity: 0.35; cursor: not-allowed; }
 
     </style>
 </head>
@@ -527,6 +538,14 @@
         <div class="total-display">
             <small style="font-size:14px; display:block; opacity:0.7">TOTAL GERAL</small>
             R$ <span id="grand-total">0,00</span>
+        </div>
+
+        <div id="side-parcelas" class="side-parcelas">
+            <div class="side-parcelas-head" onclick="abrirSimuladorParcelas()">
+                💳 Parcelas com juros
+                <span id="side-parcelas-modo">PagBank</span>
+            </div>
+            <div id="side-parcelas-lista"></div>
         </div>
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px">
@@ -997,6 +1016,7 @@ function renderCart() {
 
     document.getElementById('grand-total').innerText = total.toFixed(2);
     document.getElementById('cart-count').innerText = cart.length ? `${cart.length} item(s) no carrinho` : '';
+    atualizarSimuladorDaVenda(total);
 }
 
 function cancelarVenda() {
@@ -1174,14 +1194,19 @@ function cartTotal() {
 function usarTotalVendaNoSimulador() {
     const total = cartTotal();
     if (total <= 0) return alert('Adicione itens na venda para usar o total.');
-    document.getElementById('sim-valor').value = total.toFixed(2);
+    atualizarSimuladorDaVenda(total);
+}
+
+function atualizarSimuladorDaVenda(total) {
+    const input = document.getElementById('sim-valor');
+    if (!input) return;
+    const valor = typeof total === 'number' ? total : cartTotal();
+    input.value = valor > 0 ? valor.toFixed(2) : '';
     simularParcelas();
 }
 
 function abrirSimuladorParcelas() {
-    const total = cartTotal();
-    const input = document.getElementById('sim-valor');
-    if (total > 0 && input) input.value = total.toFixed(2);
+    atualizarSimuladorDaVenda(cartTotal());
     showTab('parcelas', document.getElementById('tab-btn-parcelas'));
 }
 
@@ -1263,6 +1288,7 @@ function simularParcelas() {
     if (valor <= 0) {
         lista.innerHTML = '<div style="text-align:center; padding:28px 10px; opacity:0.6">Informe o valor da venda para simular</div>';
         resumo.style.display = 'none';
+        renderSideParcelas([]);
         return;
     }
 
@@ -1284,6 +1310,7 @@ function simularParcelas() {
     }).join('');
 
     const escolhida = linhas.find(l => l.n === simLinhaSel && l.parcela >= PAGBANK_PARCELA_MIN) || linhas[0];
+    renderSideParcelas(linhas);
     if (!escolhida) { resumo.style.display = 'none'; return; }
     resumo.style.display = 'block';
     const mostraLiquido = simModo === 'taxa' || simModo === 'vendedor';
@@ -1300,6 +1327,34 @@ function simularParcelas() {
             ${labelRecebe}: <b>R$ ${fmtBRL(escolhida.recebido)}</b>${taxaPagBank}
         </div>
     `;
+}
+
+function renderSideParcelas(linhas) {
+    const box = document.getElementById('side-parcelas');
+    const lista = document.getElementById('side-parcelas-lista');
+    const modoEl = document.getElementById('side-parcelas-modo');
+    if (!box || !lista) return;
+
+    const temVenda = cartTotal() > 0 && linhas && linhas.length;
+    box.style.display = temVenda ? 'block' : 'none';
+    if (!temVenda) {
+        lista.innerHTML = '';
+        return;
+    }
+
+    const modoTxt = simModo === 'cliente' ? 'Juros no cliente' : (simModo === 'taxa' ? 'Repassar taxa' : 'Sem juros');
+    if (modoEl) modoEl.innerText = modoTxt;
+
+    lista.innerHTML = linhas.map(l => {
+        const off = l.parcela < PAGBANK_PARCELA_MIN;
+        const sel = !off && l.n === simLinhaSel;
+        const jurosTxt = l.n === 1 ? 'à vista' : (l.juros > 0 ? 'juros R$ ' + fmtBRL(l.juros) : 'sem juros');
+        return `<div class="side-parcela-row${sel ? ' sel' : ''}${off ? ' off' : ''}" ${off ? '' : `onclick="selecionarParcela(${l.n})"`}>
+            <div class="side-parcela-n">${l.n}x</div>
+            <div class="side-parcela-juros">${jurosTxt}</div>
+            <div>R$ ${fmtBRL(l.parcela)}</div>
+        </div>`;
+    }).join('');
 }
 
 function selecionarParcela(n) {
