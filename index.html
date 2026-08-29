@@ -68,6 +68,7 @@
 
         /* SIDE PANEL */
         .total-display { font-size: 3.2em; text-align: center; margin: 12px 0; border: 3px solid var(--secondary); padding: 8px; border-radius: 8px; background: rgba(211,84,0,0.12); font-family: 'Barlow Condensed', sans-serif; font-weight: 900; }
+        .total-display .total-sub { display: block; font-size: 14px; font-weight: 700; font-family: 'Barlow', sans-serif; opacity: 0.85; margin-top: 4px; letter-spacing: 0; }
         .btn-pay { padding: 14px 10px; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; color: white; font-size: 15px; font-family: 'Barlow', sans-serif; transition: opacity 0.15s; }
         .btn-pay:hover { opacity: 0.85; }
         .btn-pay:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -536,8 +537,9 @@
         <div id="side-items" style="flex-grow:1; overflow-y:auto; font-size:13px; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px"></div>
 
         <div class="total-display">
-            <small style="font-size:14px; display:block; opacity:0.7">TOTAL GERAL</small>
+            <small style="font-size:14px; display:block; opacity:0.7" id="grand-total-label">TOTAL GERAL</small>
             R$ <span id="grand-total">0,00</span>
+            <span class="total-sub" id="grand-total-sub"></span>
         </div>
 
         <div id="side-parcelas" class="side-parcelas">
@@ -1014,7 +1016,6 @@ function renderCart() {
         side.innerHTML += `<div style="padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.08)">${item.qty}× ${item.name}<span style="float:right; color:var(--secondary)">R$ ${sub.toFixed(2)}</span></div>`;
     });
 
-    document.getElementById('grand-total').innerText = total.toFixed(2);
     document.getElementById('cart-count').innerText = cart.length ? `${cart.length} item(s) no carrinho` : '';
     atualizarSimuladorDaVenda(total);
 }
@@ -1071,6 +1072,7 @@ const PAGBANK_PLANOS = {
 
 let simModo = 'cliente';
 let simLinhaSel = 0;
+let simVendaAtual = null;
 
 function roundMoney(n) {
     return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
@@ -1124,9 +1126,9 @@ function popularPlanosSim() {
         `<option value="${id}" ${saved.plano === id ? 'selected' : ''}>${PAGBANK_PLANOS[id].nome}</option>`
     ).join('');
     if (saved.bandeira) document.getElementById('sim-bandeira').value = saved.bandeira;
-    if (saved.jurosAm != null) document.getElementById('sim-juros').value = saved.jurosAm;
+    if (saved.jurosAm != null && Number(saved.jurosAm) > 0) document.getElementById('sim-juros').value = saved.jurosAm;
     if (saved.maxParcelas) document.getElementById('sim-max').value = saved.maxParcelas;
-    if (saved.modo) setSimModo(saved.modo, true);
+    setSimModo(saved.modo === 'taxa' ? 'taxa' : 'cliente', true);
     renderTaxasGrid();
 }
 
@@ -1164,7 +1166,7 @@ function salvarTaxasCustom() {
 
 function setSimModo(modo, silent) {
     simModo = modo;
-    document.querySelectorAll('#sim-modos .sim-pill').forEach(b => {
+    document.querySelectorAll('.sim-pill[data-modo]').forEach(b => {
         b.classList.toggle('active', b.dataset.modo === modo);
     });
     const wrapJuros = document.getElementById('sim-juros-wrap');
@@ -1173,6 +1175,12 @@ function setSimModo(modo, silent) {
         saveSimConfig({ modo });
         simularParcelas();
     }
+}
+
+function jurosAtual() {
+    const el = document.getElementById('sim-juros');
+    const v = parseFloat(String(el && el.value != null ? el.value : '').replace(',', '.'));
+    return Number.isFinite(v) && v > 0 ? v : PAGBANK_JUROS_AM;
 }
 
 function onSimPlanoChange() {
@@ -1261,8 +1269,7 @@ function simularParcelas() {
     let maxN = parseInt(maxEl.value, 10);
     if (!maxN || maxN < 1) maxN = 12;
     if (maxN > 18) { maxN = 18; maxEl.value = 18; }
-    const jurosAm = parseFloat(String(jurosEl.value).replace(',', '.'));
-    const juros = Number.isFinite(jurosAm) ? jurosAm : PAGBANK_JUROS_AM;
+    const juros = jurosAtual();
 
     saveSimConfig({
         jurosAm: juros,
@@ -1289,6 +1296,7 @@ function simularParcelas() {
         lista.innerHTML = '<div style="text-align:center; padding:28px 10px; opacity:0.6">Informe o valor da venda para simular</div>';
         resumo.style.display = 'none';
         renderSideParcelas([]);
+        atualizarTelaVenda(null, 0);
         return;
     }
 
@@ -1311,6 +1319,7 @@ function simularParcelas() {
 
     const escolhida = linhas.find(l => l.n === simLinhaSel && l.parcela >= PAGBANK_PARCELA_MIN) || linhas[0];
     renderSideParcelas(linhas);
+    atualizarTelaVenda(escolhida, valor);
     if (!escolhida) { resumo.style.display = 'none'; return; }
     resumo.style.display = 'block';
     const mostraLiquido = simModo === 'taxa' || simModo === 'vendedor';
@@ -1327,6 +1336,41 @@ function simularParcelas() {
             ${labelRecebe}: <b>R$ ${fmtBRL(escolhida.recebido)}</b>${taxaPagBank}
         </div>
     `;
+}
+
+function atualizarTelaVenda(escolhida, valorProdutos) {
+    const sub = document.getElementById('grand-total-sub');
+    const labelEl = document.getElementById('grand-total-label');
+    const produtos = Number(valorProdutos) || 0;
+    const lojaCobre = simModo === 'vendedor';
+
+    if (produtos <= 0 || !escolhida) {
+        document.getElementById('grand-total').innerText = '0,00';
+        if (sub) sub.innerText = '';
+        if (labelEl) labelEl.innerText = 'TOTAL GERAL';
+        simVendaAtual = null;
+        return;
+    }
+
+    const totalTela = lojaCobre ? roundMoney(produtos) : roundMoney(escolhida.total);
+    const jurosTela = lojaCobre ? 0 : (escolhida.juros || 0);
+
+    simVendaAtual = {
+        n: escolhida.n,
+        parcela: escolhida.parcela,
+        cobrado: totalTela,
+        juros: jurosTela,
+        produtos: produtos,
+        lojaCobre
+    };
+
+    document.getElementById('grand-total').innerText = totalTela.toFixed(2);
+    if (labelEl) labelEl.innerText = 'TOTAL GERAL';
+    if (sub) {
+        if (escolhida.n === 1) sub.innerText = '';
+        else if (lojaCobre) sub.innerText = `${escolhida.n}x de R$ ${fmtBRL(escolhida.parcela)}`;
+        else sub.innerText = `${escolhida.n}x de R$ ${fmtBRL(escolhida.parcela)}`;
+    }
 }
 
 function renderSideParcelas(linhas) {
@@ -1358,22 +1402,32 @@ function renderSideParcelas(linhas) {
 }
 
 function selecionarParcela(n) {
-    simLinhaSel = n;
+    simLinhaSel = parseInt(n, 10) || 1;
+    const produtos = cartTotal();
+    const input = document.getElementById('sim-valor');
+    if (input && produtos > 0) input.value = produtos.toFixed(2);
     simularParcelas();
 }
 
 // ===== FINALIZAR VENDA =====
 function finish(method) {
     if(!cart.length) return alert("Carrinho vazio!");
-    const total = cart.reduce((a, item) => a + (item.sale * item.qty), 0);
+    const totalProdutos = cart.reduce((a, item) => a + (item.sale * item.qty), 0);
+    const usaParcelado = method === 'Crédito' && simVendaAtual && simVendaAtual.n > 1;
+    let total = usaParcelado ? simVendaAtual.cobrado : totalProdutos;
+    let parcelasText = '';
+    if (usaParcelado) {
+        parcelasText = `<br>${simVendaAtual.n}x DE R$ ${simVendaAtual.parcela.toFixed(2)}` +
+            (simVendaAtual.juros > 0 ? `<br>JUROS: R$ ${simVendaAtual.juros.toFixed(2)}` : '') +
+            `<br>À VISTA: R$ ${totalProdutos.toFixed(2)}`;
+    }
 
     let trocoText = "";
     if (method === 'Dinheiro') {
         const valorPagoInput = prompt(`Total da Venda: R$ ${total.toFixed(2)}\nDigite o valor pago pelo cliente:`);
-        if (valorPagoInput === null) return; // Se cancelar o prompt, aborta a finalização
+        if (valorPagoInput === null) return;
         const valorPago = parseFloat(valorPagoInput.replace(',', '.')) || 0;
         
-        // Compare using values rounded to 2 decimal places to bypass JavaScript float precision issues
         const totalArredondado = parseFloat(total.toFixed(2));
         const valorPagoArredondado = parseFloat(valorPago.toFixed(2));
         
@@ -1397,14 +1451,16 @@ function finish(method) {
         total, 
         method, 
         seller: currentSeller,
-        items: cart.map(i => ({ name: i.name, qty: i.qty, sale: i.sale }))
+        items: cart.map(i => ({ name: i.name, qty: i.qty, sale: i.sale })),
+        parcelas: usaParcelado ? simVendaAtual.n : 1,
+        juros: usaParcelado ? simVendaAtual.juros : 0
     });
     localStorage.setItem('nilson_pro_inv', JSON.stringify(inventory));
     localStorage.setItem('nilson_pro_sales', JSON.stringify(sales));
 
     // Cupom
     document.getElementById('r-total').innerText = total.toFixed(2);
-    document.getElementById('r-details-pay').innerHTML = `PAGAMENTO: ${method}${trocoText}<br>VENDEDOR: ${currentSeller}<br>${new Date().toLocaleString()}`;
+    document.getElementById('r-details-pay').innerHTML = `PAGAMENTO: ${usaParcelado ? 'Crédito ' + simVendaAtual.n + 'x' : method}${parcelasText}${trocoText}<br>VENDEDOR: ${currentSeller}<br>${new Date().toLocaleString()}`;
     document.getElementById('r-list').innerHTML = cart.map(i => `<div class="r-item">#${i.id} - ${i.name}</div><div class="r-details"><span>${i.qty} UN × R$ ${i.sale.toFixed(2)}</span><span>R$ ${(i.qty*i.sale).toFixed(2)}</span></div>`).join('');
 
     window.print();
@@ -1765,7 +1821,7 @@ async function instalarApp() {
 <script>
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
+        navigator.serviceWorker.register('sw.js?v=20260829')
             .then(reg => console.log('Service Worker registrado com sucesso!', reg.scope))
             .catch(err => console.error('Erro ao registrar o Service Worker:', err));
     });

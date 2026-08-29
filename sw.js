@@ -1,9 +1,10 @@
-const CACHE = 'nilson-pdv-offline-v1';
+const CACHE = 'nilson-pdv-v3-20260829';
 const FILES = [
     './',
     './index.html',
     './manifest.json',
-    './icon.svg'
+    './icon.svg',
+    './sw.js'
 ];
 
 self.addEventListener('install', event => {
@@ -26,7 +27,7 @@ self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET') return;
 
     event.respondWith(
-        fetch(event.request).then(response => {
+        fetch(event.request, { cache: 'no-store' }).then(response => {
             if (response && response.ok) {
                 const copy = response.clone();
                 caches.open(CACHE).then(cache => cache.put(event.request, copy));
