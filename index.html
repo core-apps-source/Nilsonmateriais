@@ -101,6 +101,11 @@
         .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .badge-low { background: #ffeaea; color: var(--danger); }
         .badge-ok { background: #e8f8ee; color: var(--success); }
+        .numeros-faltando-box { background: #fff7f0; border: 2px solid #f0c078; border-radius: 8px; padding: 12px 14px; margin: 0 0 12px; }
+        .numeros-faltando-box strong { display: block; color: #9a4d00; font-size: 13px; margin-bottom: 8px; }
+        #numeros-faltando { display: flex; flex-wrap: wrap; gap: 6px; max-height: 140px; overflow-y: auto; }
+        .num-faltando { background: #fff; color: var(--danger); border: 2px solid #f3c1bc; border-radius: 16px; padding: 4px 10px; font-weight: 700; cursor: pointer; font-family: 'Barlow', sans-serif; }
+        .num-faltando:hover { background: #ffeaea; }
 
         /* CAIXA STATUS */
         .caixa-status { background: rgba(255,255,255,0.08); border-radius: 6px; padding: 8px 12px; font-size: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
@@ -478,6 +483,10 @@
 
             <!-- BUSCA ESTOQUE -->
             <div class="section-divider" style="margin-top:20px">📋 Produtos Cadastrados (<span id="total-itens-estoque">0</span>)</div>
+            <div class="numeros-faltando-box">
+                <strong>Números não cadastrados, do menor ao último <span id="numeros-faltando-qtd"></span></strong>
+                <div id="numeros-faltando">Nenhum número faltando.</div>
+            </div>
             <input type="text" id="search-inv" placeholder="Buscar produto no estoque..." oninput="renderInventory()" style="margin-bottom:10px">
 
             <table id="inventory-table">
@@ -851,6 +860,7 @@ function renderInventory() {
     const totalItens = inventory.length;
     const elEstoque = document.getElementById('total-itens-estoque');
     if (elEstoque) elEstoque.innerText = totalItens;
+    renderNumerosFaltando();
 
     const query = (document.getElementById('search-inv') ? document.getElementById('search-inv').value : '').toLowerCase();
     const filtered = query
@@ -876,6 +886,42 @@ function renderInventory() {
             </td>
         </tr>`;
     }).join('');
+}
+
+function renderNumerosFaltando() {
+    const el = document.getElementById('numeros-faltando');
+    const qtdEl = document.getElementById('numeros-faltando-qtd');
+    if (!el) return;
+    const ids = new Set(inventory.map(p => parseInt(p.id, 10)).filter(n => Number.isInteger(n) && n > 0));
+    if (ids.size < 2) {
+        el.innerHTML = 'Nenhum número faltando.';
+        if (qtdEl) qtdEl.innerText = '';
+        return;
+    }
+    const menor = Math.min(...ids);
+    const ultimo = Math.max(...ids);
+    if (ultimo - menor > 2000) {
+        el.innerHTML = `Intervalo grande demais para listar entre #${menor} e #${ultimo}.`;
+        if (qtdEl) qtdEl.innerText = '';
+        return;
+    }
+    const faltando = [];
+    for (let n = menor; n <= ultimo; n++) {
+        if (!ids.has(n)) faltando.push(n);
+    }
+    if (!faltando.length) {
+        el.innerHTML = `Sequência completa de #${menor} até #${ultimo}.`;
+        if (qtdEl) qtdEl.innerText = '';
+        return;
+    }
+    if (qtdEl) qtdEl.innerText = `(${faltando.length})`;
+    el.innerHTML = faltando.map(n => `<button type="button" class="num-faltando" onclick="usarNumeroFaltando(${n})" title="Cadastrar com este número">#${n}</button>`).join('');
+}
+
+function usarNumeroFaltando(id) {
+    toggleForm(true);
+    document.getElementById('p-id').value = id;
+    document.getElementById('p-name').focus();
 }
 
 function toggleSortOrder() {
@@ -1845,6 +1891,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const totalItensInit = inventory.length;
         const elEstoqueInit = document.getElementById('total-itens-estoque');
         if (elEstoqueInit) elEstoqueInit.innerText = totalItensInit;
+        renderNumerosFaltando();
     }
 });
 
@@ -1880,7 +1927,7 @@ async function instalarApp() {
 <script>
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=20260926')
+        navigator.serviceWorker.register('sw.js?v=20260926b')
             .then(reg => console.log('Service Worker registrado com sucesso!', reg.scope))
             .catch(err => console.error('Erro ao registrar o Service Worker:', err));
     });
