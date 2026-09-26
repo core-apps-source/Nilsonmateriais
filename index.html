@@ -26,9 +26,11 @@
         }
         * { box-sizing: border-box; }
         body { font-family: 'Barlow', sans-serif; margin: 0; background: var(--light); overflow: hidden; }
-        .container { display: grid; grid-template-columns: 1fr 430px; height: 100vh; padding: 10px; gap: 10px; }
-        .main-panel { background: white; padding: 20px; border-radius: 10px; overflow-y: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .side-panel { background: var(--primary); color: white; padding: 20px; border-radius: 10px; display: flex; flex-direction: column; }
+        .container { display: grid; grid-template-columns: 1fr 430px; height: 100vh; min-height: 0; padding: 10px; gap: 10px; }
+        .main-panel { background: white; padding: 20px; border-radius: 10px; min-height: 0; overflow-y: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .side-panel { background: var(--primary); color: white; padding: 20px; border-radius: 10px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+        .side-head, .side-checkout { flex: 0 0 auto; }
+        #side-items { flex: 1 1 auto; min-height: 0; overflow-y: auto; font-size: 13px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; }
 
         /* CAIXA FECHADO */
         #caixa-overlay {
@@ -198,10 +200,10 @@
         @media (max-width: 700px) { .taxas-grid { grid-template-columns: repeat(3, 1fr); } .sim-grid-2 { grid-template-columns: 1fr; } }
         details.sim-taxas { margin-top: 12px; font-size: 13px; }
         details.sim-taxas summary { cursor: pointer; font-weight: 700; color: #555; }
-        .side-parcelas { display: none; background: rgba(0,0,0,0.28); border: 1px solid rgba(211,84,0,0.5); border-radius: 8px; margin: 0 0 8px; overflow: hidden; }
+        .side-parcelas { display: none; flex: 0 1 auto; max-height: 108px; background: rgba(0,0,0,0.28); border: 1px solid rgba(211,84,0,0.5); border-radius: 8px; margin: 0 0 8px; overflow: hidden; }
         .side-parcelas-head { font-size: 11px; font-weight: 700; letter-spacing: 0.4px; padding: 7px 10px; background: rgba(211,84,0,0.28); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         .side-parcelas-head span { opacity: 0.8; font-weight: 600; }
-        #side-parcelas-lista { max-height: 168px; overflow-y: auto; }
+        #side-parcelas-lista { max-height: 72px; overflow-y: auto; }
         .side-parcela-row { display: grid; grid-template-columns: 42px 1fr auto; gap: 6px; align-items: center; padding: 5px 10px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer; }
         .side-parcela-row:hover { background: rgba(255,255,255,0.06); }
         .side-parcela-row.sel { background: var(--secondary); }
@@ -522,7 +524,7 @@
 
     <!-- PAINEL DIREITO -->
     <div class="side-panel">
-        <div style="text-align: center; margin-bottom:10px">
+        <div class="side-head" style="text-align: center; margin-bottom:10px">
             <div class="caixa-status">
                 <div>
                     <span id="vendedor-log" style="font-size:13px; opacity:0.85">Vendedor: --</span><br>
@@ -534,8 +536,9 @@
             <small style="opacity:0.6">CNPJ: 43.407.588/0001-05</small>
         </div>
 
-        <div id="side-items" style="flex-grow:1; overflow-y:auto; font-size:13px; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px"></div>
+        <div id="side-items"></div>
 
+        <div class="side-checkout">
         <div class="total-display">
             <small style="font-size:14px; display:block; opacity:0.7" id="grand-total-label">TOTAL GERAL</small>
             R$ <span id="grand-total">0,00</span>
@@ -559,6 +562,7 @@
         <button class="btn-pay" style="background:var(--warn); width:100%; margin-bottom:8px" onclick="abrirSimuladorParcelas()">📊 SIMULAR PARCELAS</button>
         <button id="side-install-btn" class="btn-pay" style="display:none; background:var(--secondary); width:100%; margin-bottom:8px;" onclick="instalarApp()">📲 INSTALAR PDV</button>
         <button class="btn-pay" style="background:var(--danger); width:100%" onclick="cancelarVenda()">🗑️ CANCELAR VENDA</button>
+        </div>
     </div>
 </div>
 
@@ -707,20 +711,26 @@ function abrirCaixa() {
 }
 
 function pedirFecharCaixa() {
-    const hoje = new Date().toLocaleDateString('pt-BR');
-    const vHoje = sales.filter(s => new Date(s.date).toLocaleDateString('pt-BR') === hoje);
-    const totalHoje = vHoje.reduce((a,b) => a + b.total, 0);
-    const qtdVendas = vHoje.length;
-    const saldoFinal = caixaAbertura.valor + totalHoje;
+    const inicio = caixaAbertura.hora ? caixaAbertura.hora.getTime() : 0;
+    const vendasSessao = sales.filter(s => new Date(s.date).getTime() >= inicio);
+    const porMetodo = {};
+    vendasSessao.forEach(s => {
+        porMetodo[s.method] = (porMetodo[s.method] || 0) + s.total;
+    });
+    const dinheiro = porMetodo.Dinheiro || 0;
+    const saldoFinal = caixaAbertura.valor + dinheiro;
+    const linhas = ['Dinheiro', 'PIX', 'Crédito', 'Débito'].map(metodo =>
+        `${metodo}: R$ ${(porMetodo[metodo] || 0).toFixed(2)}`
+    ).join('<br>');
 
     document.getElementById('fechar-resumo').innerHTML = `
-        <b>Resumo do Caixa</b><br>
-        🕐 Abertura: ${caixaAbertura.hora ? caixaAbertura.hora.toLocaleTimeString() : '--'}<br>
+        <b>Resumo deste caixa</b><br>
+        🕐 Abertura: ${caixaAbertura.hora ? caixaAbertura.hora.toLocaleTimeString('pt-BR') : '--'}<br>
         💵 Valor de Abertura: R$ ${caixaAbertura.valor.toFixed(2)}<br>
-        🛒 Vendas Realizadas: ${qtdVendas}<br>
-        💰 Total Vendido: R$ ${totalHoje.toFixed(2)}<br>
+        🛒 Vendas desta abertura: ${vendasSessao.length}<br>
+        ${linhas}<br>
         <hr style="border:none; border-top:1px solid #ddd; margin:8px 0">
-        <b style="font-size:16px">💼 Saldo Final: R$ ${saldoFinal.toFixed(2)}</b>
+        <b style="font-size:16px">💼 Dinheiro no caixa: R$ ${saldoFinal.toFixed(2)}</b>
     `;
     document.getElementById('modal-fechar').style.display = 'flex';
 }
@@ -804,9 +814,11 @@ function saveProduct() {
     const sale = parseFloat(document.getElementById('p-sale').value) || 0;
     if(!name || sale <= 0) return alert("Preencha pelo menos Nome e Preço de Venda!");
 
-    const idInput = parseInt(document.getElementById('p-id').value) || getNextId();
+    let idInput = parseInt(document.getElementById('p-id').value) || getNextId();
     if(inventory.find(p => p.id === idInput)) {
-        if(!confirm(`Já existe um produto com Nº ${idInput}. Deseja usar o próximo disponível (${getNextId()})?`)) return;
+        const proximo = getNextId();
+        if(!confirm(`Já existe um produto com Nº ${idInput}. Deseja usar o próximo disponível (${proximo})?`)) return;
+        idInput = proximo;
     }
 
     inventory.push({
@@ -967,10 +979,25 @@ function handleSearch(e) {
     }
 }
 
+function estoqueDisponivel(productId) {
+    const p = inventory.find(i => i.id === productId);
+    return p ? Number(p.stock) || 0 : 0;
+}
+
+function excedeEstoque(qty, stock) {
+    return Math.round((Number(qty) || 0) * 1000) > Math.round((Number(stock) || 0) * 1000);
+}
+
 function addToCart(p) {
+    const atual = inventory.find(i => i.id === p.id) || p;
     const inCart = cart.find(c => c.id === p.id);
-    if(inCart) inCart.qty += 1;
-    else cart.push({...p, qty: 1});
+    const proxima = (inCart ? inCart.qty : 0) + 1;
+    if (excedeEstoque(proxima, atual.stock)) {
+        alert(`Estoque insuficiente para "${atual.name}". Disponível: ${atual.stock}`);
+        return;
+    }
+    if(inCart) inCart.qty = proxima;
+    else cart.push({...atual, qty: 1});
     renderCart();
     const searchInput = document.getElementById('search-input');
     if (searchInput) searchInput.focus();
@@ -990,7 +1017,16 @@ function selectSearchResult(id) {
 }
 
 function updateCartQty(idx, val) {
-    cart[idx].qty = parseFloat(val) || 0;
+    const item = cart[idx];
+    if (!item) return;
+    let qty = parseFloat(val);
+    if (!Number.isFinite(qty) || qty < 0) qty = 0;
+    const stock = estoqueDisponivel(item.id);
+    if (excedeEstoque(qty, stock)) {
+        alert(`Estoque insuficiente para "${item.name}". Disponível: ${stock}`);
+        qty = stock;
+    }
+    cart[idx].qty = qty;
     renderCart();
     const searchInput = document.getElementById('search-input');
     if (searchInput) searchInput.focus();
@@ -1071,7 +1107,8 @@ const PAGBANK_PLANOS = {
 };
 
 let simModo = 'cliente';
-let simLinhaSel = 0;
+let simLinhaSel = 1;
+let simParcelaConfirmada = false;
 let simVendaAtual = null;
 
 function roundMoney(n) {
@@ -1209,6 +1246,10 @@ function atualizarSimuladorDaVenda(total) {
     const input = document.getElementById('sim-valor');
     if (!input) return;
     const valor = typeof total === 'number' ? total : cartTotal();
+    if (!(valor > 0)) {
+        simParcelaConfirmada = false;
+        simLinhaSel = 1;
+    }
     input.value = valor > 0 ? valor.toFixed(2) : '';
     simularParcelas();
 }
@@ -1302,8 +1343,8 @@ function simularParcelas() {
 
     const linhas = [];
     for (let n = 1; n <= maxN; n++) linhas.push(calcLinhaParcela(valor, n, simModo, juros));
-    if (simLinhaSel > maxN) simLinhaSel = 0;
-    if (!simLinhaSel && simModo !== 'vendedor') simLinhaSel = Math.min(2, maxN);
+    if (!simLinhaSel || simLinhaSel > maxN) simLinhaSel = 1;
+    if (!simParcelaConfirmada) simLinhaSel = 1;
 
     lista.innerHTML = linhas.map(l => {
         const off = l.parcela < PAGBANK_PARCELA_MIN;
@@ -1352,24 +1393,23 @@ function atualizarTelaVenda(escolhida, valorProdutos) {
         return;
     }
 
-    const totalTela = lojaCobre ? roundMoney(produtos) : roundMoney(escolhida.total);
-    const jurosTela = lojaCobre ? 0 : (escolhida.juros || 0);
+    const aplicar = simParcelaConfirmada && escolhida.n > 1 && !lojaCobre;
+    const totalTela = aplicar ? roundMoney(escolhida.total) : roundMoney(produtos);
+    const jurosTela = aplicar ? (escolhida.juros || 0) : 0;
 
     simVendaAtual = {
-        n: escolhida.n,
-        parcela: escolhida.parcela,
+        n: aplicar ? escolhida.n : 1,
+        parcela: aplicar ? escolhida.parcela : roundMoney(produtos),
         cobrado: totalTela,
         juros: jurosTela,
         produtos: produtos,
         lojaCobre
     };
 
-    document.getElementById('grand-total').innerText = totalTela.toFixed(2);
+    document.getElementById('grand-total').innerText = roundMoney(produtos).toFixed(2);
     if (labelEl) labelEl.innerText = 'TOTAL GERAL';
     if (sub) {
-        if (escolhida.n === 1) sub.innerText = '';
-        else if (lojaCobre) sub.innerText = `${escolhida.n}x de R$ ${fmtBRL(escolhida.parcela)}`;
-        else sub.innerText = `${escolhida.n}x de R$ ${fmtBRL(escolhida.parcela)}`;
+        sub.innerText = aplicar ? `Crédito ${escolhida.n}x de R$ ${fmtBRL(escolhida.parcela)}` : '';
     }
 }
 
@@ -1403,6 +1443,7 @@ function renderSideParcelas(linhas) {
 
 function selecionarParcela(n) {
     simLinhaSel = parseInt(n, 10) || 1;
+    simParcelaConfirmada = simLinhaSel > 1;
     const produtos = cartTotal();
     const input = document.getElementById('sim-valor');
     if (input && produtos > 0) input.value = produtos.toFixed(2);
@@ -1412,8 +1453,13 @@ function selecionarParcela(n) {
 // ===== FINALIZAR VENDA =====
 function finish(method) {
     if(!cart.length) return alert("Carrinho vazio!");
+    const semEstoque = cart.find(item => excedeEstoque(item.qty, estoqueDisponivel(item.id)));
+    if (semEstoque) {
+        alert(`Estoque insuficiente para "${semEstoque.name}". Disponível: ${estoqueDisponivel(semEstoque.id)}`);
+        return;
+    }
     const totalProdutos = cart.reduce((a, item) => a + (item.sale * item.qty), 0);
-    const usaParcelado = method === 'Crédito' && simVendaAtual && simVendaAtual.n > 1;
+    const usaParcelado = method === 'Crédito' && simParcelaConfirmada && simVendaAtual && simVendaAtual.n > 1;
     let total = usaParcelado ? simVendaAtual.cobrado : totalProdutos;
     let parcelasText = '';
     if (usaParcelado) {
@@ -1465,6 +1511,8 @@ function finish(method) {
 
     window.print();
     cart = [];
+    simParcelaConfirmada = false;
+    simLinhaSel = 1;
     renderCart();
     renderInventory();
     const searchInput = document.getElementById('search-input');
@@ -1648,9 +1696,13 @@ function exportBackup(tipo) {
     let data, filename;
     const date = new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
 
+    let caixa = null;
+    let parcelas = null;
+    try { caixa = JSON.parse(localStorage.getItem('nilson_pro_caixa') || 'null'); } catch { caixa = null; }
+    try { parcelas = JSON.parse(localStorage.getItem('nilson_pro_parcelas') || 'null'); } catch { parcelas = null; }
     if(tipo === 'produtos') { data = { inv: inventory }; filename = `backup_produtos_${date}.json`; }
-    else if(tipo === 'financas') { data = { sales }; filename = `backup_financas_${date}.json`; }
-    else { data = { inv: inventory, sales }; filename = `backup_completo_${date}.json`; }
+    else if(tipo === 'financas') { data = { sales, caixa, parcelas }; filename = `backup_financas_${date}.json`; }
+    else { data = { inv: inventory, sales, caixa, parcelas }; filename = `backup_completo_${date}.json`; }
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1672,8 +1724,15 @@ function importBackup(e) {
             const data = JSON.parse(ev.target.result);
             if(data.inv) { inventory = data.inv; localStorage.setItem('nilson_pro_inv', JSON.stringify(inventory)); }
             if(data.sales) { sales = data.sales; localStorage.setItem('nilson_pro_sales', JSON.stringify(sales)); }
+            if(data.caixa) localStorage.setItem('nilson_pro_caixa', JSON.stringify(data.caixa));
+            if(data.parcelas) localStorage.setItem('nilson_pro_parcelas', JSON.stringify(data.parcelas));
             alert("✅ Backup restaurado com sucesso!");
+            carregarCaixa();
+            const planoEl = document.getElementById('sim-plano');
+            if (planoEl) planoEl.innerHTML = '';
+            if (typeof popularPlanosSim === 'function') popularPlanosSim();
             renderInventory();
+            renderReports();
         } catch { alert("❌ Arquivo inválido!"); }
     };
     reader.readAsText(e.target.files[0]);
@@ -1821,7 +1880,7 @@ async function instalarApp() {
 <script>
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=20260829')
+        navigator.serviceWorker.register('sw.js?v=20260926')
             .then(reg => console.log('Service Worker registrado com sucesso!', reg.scope))
             .catch(err => console.error('Erro ao registrar o Service Worker:', err));
     });

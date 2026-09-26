@@ -1,4 +1,4 @@
-const CACHE = 'nilson-pdv-v3-20260829';
+const CACHE = 'nilson-pdv-v4-20260926';
 const FILES = [
     './',
     './index.html',
